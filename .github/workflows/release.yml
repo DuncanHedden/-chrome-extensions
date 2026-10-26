@@ -1,0 +1,38 @@
+name: Release
+
+# Tag format: <extension>-v<version>, e.g. regex-find-v1.0.0
+on:
+  push:
+    tags: ['*-v[0-9]*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - name: Parse tag
+        id: tag
+        run: |
+          echo "extension=${GITHUB_REF_NAME%-v*}" >> "$GITHUB_OUTPUT"
+          echo "version=${GITHUB_REF_NAME##*-v}" >> "$GITHUB_OUTPUT"
+      - name: Build and zip
+        run: npm run zip -- "${{ steps.tag.outputs.extension }}" --expect-version "${{ steps.tag.outputs.version }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.ref_name }}
+          path: release/*.zip
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" release/*.zip --title "$GITHUB_REF_NAME" --generate-notes
