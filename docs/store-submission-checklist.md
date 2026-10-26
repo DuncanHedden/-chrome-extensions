@@ -24,7 +24,7 @@
 - [ ] Category: Regex Find → **Productivity → Tools**.
 - [ ] Language: English.
 - [ ] Store icon: 128×128 (`public/icons/icon-128.png`).
-- [ ] Screenshots: 1–5 at **1280×800** (or 640×400). Replace the placeholders in `store/screenshots/` with real captures first.
+- [ ] Screenshots: upload all 5 from `store/screenshots/` (1280×800). Recapture after UI changes with `npx tsx extensions/<name>/store/capture.ts`.
 - [ ] Small promo tile 440×280: `store/promo-small-440x280.png`.
 - [ ] Homepage URL (GitHub repo) and support URL (GitHub issues).
 

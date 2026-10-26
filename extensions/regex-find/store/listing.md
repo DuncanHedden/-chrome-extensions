@@ -43,12 +43,13 @@ Changelog
 
 ## Screenshots (1280×800)
 
-Placeholders in `screenshots/` (regenerate with `npm run assets`). Replace each with a real capture:
+Real captures in `screenshots/`, taken from the extension running on the demo pages in `demo/`.
+Regenerate after UI changes with `npx tsx extensions/regex-find/store/capture.ts`.
 
-1. **Search any page with regular expressions** — bar open on a docs or log page, pattern like `\b[A-Z]{2,}-\d+\b`, matches highlighted.
-2. **Every match highlighted, without breaking the page** — busy page (e.g. a GitHub issue list) with dozens of highlights.
-3. **Match case, whole word and multiline toggles** — close-up of the bar with a toggle pressed and the tooltip visible.
-4. **Invalid pattern? You get an error, not a crash** — bar showing "Unterminated group" in red.
-5. **Private: runs entirely in your browser** — the options page (no-tracking line, history toggle).
+1. `1-search-with-regex.png`: "Ctrl-F with regular expressions" (build log, `ERROR.*timeout after \d+`)
+2. `2-every-match-highlighted.png`: "Every match highlighted. Enter to jump." (ticket table)
+3. `3-whole-word-and-case-toggles.png`: "Match case, whole word, multiline" (whole-word on: `log` skips "logging", "catalog")
+4. `4-invalid-pattern-error.png`: "Typo in your regex? Clear error, no crash"
+5. `5-private-options.png`: "Private: runs entirely in your browser" (options page)
 
-Small promo tile (440×280): `promo-small-440x280.png`.
+Small promo tile (440×280): `promo-small-440x280.png` (from `npm run assets`).

@@ -26,7 +26,8 @@ npm run dev -- regex-find      # rebuild on save; reload the extension in chrome
 npm run zip -- regex-find      # release/regex-find-<version>.zip, ready for the Web Store
 npm run lint && npm run typecheck && npm test
 npx playwright install chromium && npm run e2e
-npm run assets                 # re-render icons + placeholder screenshots from assets/icon.svg
+npm run assets                 # re-render icons + promo tile from assets/icon.svg
+npx tsx extensions/regex-find/store/capture.ts   # real store screenshots
 ```
 
 Load unpacked: chrome://extensions → Developer mode → **Load unpacked** → `extensions/<name>/dist`.

@@ -4,5 +4,5 @@
     "lib": ["ES2023", "DOM"],
     "types": ["node", "chrome"]
   },
-  "include": ["scripts", "testing", "extensions/*/e2e", "*.config.ts"]
+  "include": ["scripts", "testing", "extensions/*/e2e", "extensions/*/store/*.ts", "*.config.ts"]
 }

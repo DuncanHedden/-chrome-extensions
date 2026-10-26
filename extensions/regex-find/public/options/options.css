@@ -1,12 +1,12 @@
 :root {
   color-scheme: light dark;
   --fg: #202124; --muted: #5f6368; --bg: #fff; --border: #dadce0; --accent: #1a73e8;
-  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root { --fg: #e8eaed; --muted: #9aa0a6; --bg: #202124; --border: #3c4043; --accent: #8ab4f8; }
 }
-body { margin: 0; background: var(--bg); color: var(--fg); }
+/* Set on body, not :root: Chrome's built-in extension-page stylesheet sets body { font-size: 75% }. */
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
 main { max-width: 640px; margin: 0 auto; padding: 24px 16px 64px; }
 header { display: flex; align-items: center; gap: 12px; }
 h1 { font-size: 22px; margin: 0; }

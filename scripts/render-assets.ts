@@ -1,23 +1,21 @@
 // Usage: tsx scripts/render-assets.ts [extension...]
-// Renders assets/icon.svg to public/icons/icon-{16,32,48,128}.png, plus placeholder 1280x800 screenshots and a
-// 440x280 promo tile from store/screenshots.json. Replace the screenshots with real captures before submitting.
+// Renders assets/icon.svg to public/icons/icon-{16,32,48,128}.png and a 440x280 promo tile from store/promo.json.
+// Store screenshots are real captures from each extension's store/capture.ts, not generated here.
 import { readFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { chromium } from '@playwright/test';
 import { extensionDir, listExtensions } from './lib.ts';
 
-interface ScreenshotSpec {
+interface PromoSpec {
   accent: string;
   title: string;
-  screenshots: string[];
   promo: string;
 }
 
 const escape = (s: string) => s.replace(/[&<>"]/g, (c) => `&${{ '&': 'amp', '<': 'lt', '>': 'gt', '"': 'quot' }[c]};`);
-const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
 
-function card(spec: ScreenshotSpec, iconSvg: string, caption: string, index: number | null, w: number, h: number) {
+function card(spec: PromoSpec, iconSvg: string, caption: string, w: number, h: number) {
   const big = w > 600;
   return `<!doctype html><html><body style="margin:0;width:${w}px;height:${h}px;display:flex;flex-direction:column;
     align-items:center;justify-content:center;gap:${big ? 32 : 14}px;background:linear-gradient(160deg,#f8f9fa,#e8f0fe);
@@ -25,7 +23,6 @@ function card(spec: ScreenshotSpec, iconSvg: string, caption: string, index: num
     <div style="width:${big ? 160 : 88}px;height:${big ? 160 : 88}px">${iconSvg.replace('<svg', '<svg width="100%" height="100%"')}</div>
     <div style="font-size:${big ? 56 : 26}px;font-weight:700;max-width:${w - 120}px;line-height:1.15">${escape(caption)}</div>
     <div style="font-size:${big ? 24 : 14}px;color:${spec.accent};font-weight:600">${escape(spec.title)}</div>
-    ${index === null ? '' : `<div style="position:absolute;top:24px;right:32px;font-size:20px;color:#9aa0a6">PLACEHOLDER ${index + 1}/5 - replace with a real 1280x800 capture</div>`}
   </body></html>`;
 }
 
@@ -46,17 +43,11 @@ for (const name of names) {
     await page.screenshot({ path: path.join(dir, `public/icons/icon-${size}.png`), omitBackground: true });
   }
 
-  const specPath = path.join(dir, 'store/screenshots.json');
+  const specPath = path.join(dir, 'store/promo.json');
   if (existsSync(specPath)) {
-    const spec: ScreenshotSpec = JSON.parse(await readFile(specPath, 'utf8'));
-    await mkdir(path.join(dir, 'store/screenshots'), { recursive: true });
-    await page.setViewportSize({ width: 1280, height: 800 });
-    for (const [i, caption] of spec.screenshots.entries()) {
-      await page.setContent(card(spec, iconSvg, caption, i, 1280, 800));
-      await page.screenshot({ path: path.join(dir, `store/screenshots/${i + 1}-${slug(caption)}.png`) });
-    }
+    const spec: PromoSpec = JSON.parse(await readFile(specPath, 'utf8'));
     await page.setViewportSize({ width: 440, height: 280 });
-    await page.setContent(card(spec, iconSvg, spec.promo, null, 440, 280));
+    await page.setContent(card(spec, iconSvg, spec.promo, 440, 280));
     await page.screenshot({ path: path.join(dir, 'store/promo-small-440x280.png') });
   }
   console.log(`rendered assets for ${name}`);
