@@ -27,4 +27,4 @@ If this policy changes, the new version will be published at this URL with a new
 
 ## Contact
 
-[your contact email]
+dmhedden123@gmail.com
