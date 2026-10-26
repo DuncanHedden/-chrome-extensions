@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Regex Find – Options</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <img src="../icons/icon-48.png" alt="" width="40" height="40" />
+        <h1>Regex Find</h1>
+      </header>
+
+      <section>
+        <h2>Default flags</h2>
+        <p class="hint">What the find bar starts with. Toggling in the bar only affects that search.</p>
+        <label><input type="checkbox" name="caseInsensitive" /> Ignore case</label>
+        <label><input type="checkbox" name="wholeWord" /> Whole word <span class="hint">(wraps the pattern in <code>\b…\b</code>)</span></label>
+        <label><input type="checkbox" name="multiline" /> Multiline <span class="hint">(<code>^</code> and <code>$</code> match at each line)</span></label>
+      </section>
+
+      <section>
+        <h2>Highlight colours</h2>
+        <div class="colors">
+          <label><input type="color" name="matchColor" /> All matches</label>
+          <label><input type="color" name="currentColor" /> Current match</label>
+          <button type="button" id="reset-colors" class="link">Reset</button>
+        </div>
+        <p class="preview">Preview: <mark id="preview-match">match</mark> and <mark id="preview-current">current match</mark></p>
+      </section>
+
+      <section>
+        <h2>Pattern history</h2>
+        <label><input type="checkbox" name="rememberHistory" /> Remember my last 20 patterns <span class="hint">(stored only on this device)</span></label>
+        <ol id="history"></ol>
+        <p id="history-empty" class="hint">No saved patterns.</p>
+        <button type="button" id="clear-history">Clear history</button>
+      </section>
+
+      <section>
+        <h2>Keyboard shortcut</h2>
+        <p>Open the find bar with <kbd id="shortcut">…</kbd>, or click the toolbar icon.</p>
+        <button type="button" id="change-shortcut">Change shortcut</button>
+      </section>
+
+      <footer>
+        <p>
+          Regex Find runs entirely in your browser: no analytics, no network requests, nothing collected.
+          It's free. If it saves you time, <a id="donate" target="_blank" rel="noopener">buy me a coffee</a>.
+        </p>
+        <p class="hint" id="version"></p>
+      </footer>
+    </main>
+    <div id="saved" role="status" aria-live="polite"></div>
+    <script src="options.js"></script>
+  </body>
+</html>

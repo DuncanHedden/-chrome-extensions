@@ -1,0 +1,25 @@
+{
+  "extName": { "message": "Regex Find – Regular Expression Page Search" },
+  "extDescription": {
+    "message": "Regex search for any web page: find text with regular expressions, highlight every match, jump between them. 100% local."
+  },
+  "actionTitle": { "message": "Regex Find (Ctrl+Shift+F)" },
+  "commandOpen": { "message": "Open the regex find bar" },
+  "unsupportedPage": { "message": "Regex Find can't run on this page" },
+  "barPlaceholder": { "message": "Regular expression" },
+  "barPrev": { "message": "Previous match (Shift+Enter)" },
+  "barNext": { "message": "Next match (Enter)" },
+  "barClose": { "message": "Close (Esc)" },
+  "flagMatchCase": { "message": "Match case (Alt+C)" },
+  "flagWholeWord": { "message": "Whole word (Alt+W)" },
+  "flagMultiline": { "message": "Multiline: ^ and $ match at each line (Alt+M)" },
+  "statusNoMatches": { "message": "No matches" },
+  "statusCount": {
+    "message": "$CURRENT$ of $TOTAL$",
+    "placeholders": { "current": { "content": "$1" }, "total": { "content": "$2" } }
+  },
+  "statusTruncated": {
+    "message": "Showing the first $COUNT$ matches. Narrow the pattern to see the rest.",
+    "placeholders": { "count": { "content": "$1" } }
+  }
+}

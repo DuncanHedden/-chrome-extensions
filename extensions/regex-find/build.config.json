@@ -1,0 +1,7 @@
+{
+  "entries": {
+    "background": "src/background.ts",
+    "content": "src/content/index.ts",
+    "options/options": "src/options/options.ts"
+  }
+}
