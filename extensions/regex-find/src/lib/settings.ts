@@ -32,4 +32,4 @@ export function safeColor(value: string, fallback: string): string {
   return /^#[0-9a-f]{6}$/i.test(value) ? value : fallback;
 }
 
-export const DONATE_URL = 'https://buymeacoffee.com/YOUR_HANDLE';
+export const DONATE_URL = 'https://buymeacoffee.com/Duncanh';
