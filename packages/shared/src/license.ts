@@ -94,8 +94,9 @@ async function call(config: LicenseConfig, action: 'activate' | 'validate' | 'de
 
 /** A human message from a Polar error body (string detail, or a 422 validation list). */
 function errorText(status: number, body: PolarBody): string {
-  if (typeof body.detail === 'string') return body.detail;
+  // Polar's 404 detail is just "Not found"; say what it means for the customer.
   if (status === 404) return 'License key not found, or it has been revoked or has expired.';
+  if (typeof body.detail === 'string') return body.detail;
   if (status === 403) return 'This license key cannot be activated (revoked, expired, or its screen limit is reached).';
   if (status === 422) return 'That doesn’t look like a valid license key.';
   return `License server returned HTTP ${status}.`;

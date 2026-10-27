@@ -31,7 +31,7 @@ describe('activateLicense', () => {
   it('explains refusals: screen limit reached (403), unknown key (404), malformed (422)', async () => {
     for (const [status, body, expected] of [
       [403, { error: 'NotPermitted', detail: 'License key activation limit reached' }, /limit reached/],
-      [404, { error: 'ResourceNotFound', detail: 'Not found' }, /Not found/],
+      [404, { error: 'ResourceNotFound', detail: 'Not found' }, /not found, or it has been revoked/],
       [422, { detail: [{ msg: 'bad' }] }, /valid license key/],
     ] as const) {
       const { fetchImpl } = server(() => [status, body]);
@@ -66,7 +66,7 @@ describe('validateLicense', () => {
     const { fetchImpl } = server(() => [404, { error: 'ResourceNotFound', detail: 'License key not found.' }]);
     const license = await validateLicense(CONFIG, active, fetchImpl, 5000);
     expect(license.pro).toBe(false);
-    expect(license.lastError).toMatch(/not found/);
+    expect(license.lastError).toMatch(/revoked or has expired/);
   });
 
   it('keeps Pro through network outages inside the grace period, then drops it', async () => {
