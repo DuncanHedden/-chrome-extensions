@@ -1,0 +1,9 @@
+{
+  "name": "tab-rotator",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@ext/shared": "*"
+  }
+}

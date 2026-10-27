@@ -4,8 +4,8 @@ Manifest V3 extensions rebuilt to replace abandoned MV2 ones. No analytics, no r
 
 | Extension | Status |
 |---|---|
-| [Regex Find](extensions/regex-find) | 1.0.0, ready to submit |
-| Multi Forward for Gmail | not started |
+| [Regex Find](extensions/regex-find) | 1.0.0, submitted to the Web Store |
+| [Tab Rotator](extensions/tab-rotator) | milestone 1 (free tier engine), in testing. See [TESTING.md](extensions/tab-rotator/TESTING.md) |
 
 ## Layout
 

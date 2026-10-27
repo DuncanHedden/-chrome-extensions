@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tab Rotator – Settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <img src="../icons/icon-48.png" alt="" width="40" height="40" />
+        <h1>Tab Rotator</h1>
+      </header>
+
+      <section class="status" aria-live="polite">
+        <div>
+          <strong id="status-text">…</strong>
+          <div id="status-detail" class="hint"></div>
+        </div>
+        <button type="button" id="toggle" class="primary">Start</button>
+      </section>
+      <p class="hint">While this settings tab is in front, rotation holds on it. Switch to another tab and it carries on.</p>
+
+      <section>
+        <h2>What to rotate</h2>
+        <label><input type="radio" name="source" value="window" /> The tabs in this window</label>
+        <label><input type="radio" name="source" value="playlist" /> A playlist of URLs (opened and kept open by Tab Rotator)</label>
+        <label class="inline">Show each tab for <input type="number" name="defaultDurationSec" min="2" max="86400" step="1" /> seconds by default</label>
+      </section>
+
+      <section id="playlist-section">
+        <h2>Playlist</h2>
+        <p class="hint">Rotates in this order. Leave duration blank to use the default.</p>
+        <table class="items">
+          <thead><tr><th>URL</th><th>Seconds</th><th>Reload before showing</th><th></th></tr></thead>
+          <tbody id="playlist"></tbody>
+        </table>
+        <button type="button" id="add-entry">Add URL</button>
+      </section>
+
+      <section id="rules-section">
+        <h2>Per-tab settings</h2>
+        <p class="hint">For tabs whose URL starts with the given text. The first matching rule wins; other tabs use the default.</p>
+        <table class="items">
+          <thead><tr><th>URL starts with</th><th>Seconds</th><th>Reload before showing</th><th></th></tr></thead>
+          <tbody id="rules"></tbody>
+        </table>
+        <button type="button" id="add-rule">Add rule</button>
+      </section>
+
+      <section>
+        <h2>Unattended operation</h2>
+        <label><input type="checkbox" name="autoStart" /> Start rotating when the browser starts</label>
+        <label><input type="checkbox" name="pauseOnActivity" /> Pause while someone uses the keyboard or mouse</label>
+        <label class="inline indent">Resume after <input type="number" name="resumeAfterIdleSec" min="15" max="3600" step="1" /> seconds without input</label>
+        <label><input type="checkbox" name="skipLoading" /> Skip tabs that are still loading</label>
+        <label><input type="checkbox" name="selfHeal" /> Reload tabs that crash or fail to load (backing off up to every 15 min)</label>
+        <label class="inline indent">Treat a page as failed if it is still loading after <input type="number" name="loadTimeoutSec" min="10" max="600" step="1" /> seconds</label>
+      </section>
+
+      <section>
+        <h2>Recent events</h2>
+        <ol id="log" class="log"></ol>
+        <p id="log-empty" class="hint">Nothing yet.</p>
+      </section>
+
+      <section>
+        <h2>Keyboard shortcut</h2>
+        <p>Start/stop with <kbd id="shortcut">…</kbd>, or click the toolbar icon.</p>
+        <button type="button" id="change-shortcut">Change shortcut</button>
+      </section>
+
+      <footer class="hint">
+        Tab Rotator runs entirely in this browser: no analytics, no telemetry, nothing sent anywhere.
+        <span id="version"></span>
+      </footer>
+    </main>
+    <div id="saved" role="status" aria-live="polite"></div>
+    <script src="options.js"></script>
+  </body>
+</html>

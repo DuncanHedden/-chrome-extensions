@@ -32,3 +32,27 @@ Dated one-liners for non-obvious choices. Newest at the bottom of each section.
 - 2026-10-26 — e2e: Playwright can't fire browser-level shortcuts, and `activeTab` needs a real gesture, so tests use a separate `dist-e2e` build that adds `http://localhost/*` and call the real handler exposed on the service worker's global. Store zips never include that permission.
 - 2026-10-26 — Store name "Regex Find – Regular Expression Page Search" (43 chars) instead of the proposed 49-char title, to meet the 45-char target while keeping "regex" and "regular expression". The listing doesn't name the dead extension: that risks keyword-spam / impersonation flags.
 - 2026-10-26 — The ExtensionPay license client is deferred to the Multi Forward phase; Regex Find has no paywall, so nothing exercises it yet.
+
+## Tab Rotator
+
+- 2026-10-26 — Built in the existing monorepo rather than a fresh directory: the requested layout (`extensions/`, `packages/shared`, `scripts/zip.ts`, CI) already exists there.
+- 2026-10-26 — esbuild, not crxjs, for the same reasons as Regex Find. The service worker, offscreen page and its worker are just four entry points in `build.config.json`.
+- 2026-10-26 — Added the `webNavigation` permission (beyond the requested list): through `tabs`, a failed load looks identical to a working page (status "complete", title = hostname). Only `webNavigation.onErrorOccurred` reports it (verified). It adds no install warning, since `tabs` already shows the same "Read your browsing history".
+- 2026-10-26 — Crash detection polls `tab.status === "unloaded" && !tab.discarded` on every reconcile: Chrome fires no event when a renderer dies (verified). Detection latency is bounded by the next wake, at most 30 s (the watchdog).
+- 2026-10-26 — `reconcile()` is a pure function of (stored state, settings, world snapshot, now) → (new state, actions, log entries, next wake). All Chrome calls live in `runtime.ts`, which runs entry points through one serial queue, so concurrent events can't interleave read-modify-write.
+- 2026-10-26 — Sub-30 s waits use a dedicated Worker inside the offscreen document, with reason `WORKERS`. Timers in hidden documents are throttled to once a minute after 5 minutes, but workers are exempt, and it keeps the stated offscreen reason honest. The risk is that a reviewer questions offscreen-as-timer; the justification text is in docs/permissions.md.
+- 2026-10-26 — A 30 s watchdog alarm runs while rotating, regardless of other timers, so a lost timer or a missed event costs at most 30 s.
+- 2026-10-26 — Settings and state live in `storage.local`, not `sync`. Screens often share one Google account, and sync would push one screen's playlist to every TV.
+- 2026-10-26 — Waking late (sleep, suspended Chrome, clock jump forward) advances exactly one item and restarts its timer, with a log entry if more than 60 s late. Catching up through missed slots is meaningless on a wall display.
+- 2026-10-26 — If the next switch is further away than the current item's whole duration, the clock went backwards, so the timer restarts instead of the screen freezing.
+- 2026-10-26 — Rotation time is epoch-based, so DST changes don't affect it. Wall-clock DST handling belongs to the schedule engine (milestone 2).
+- 2026-10-26 — Reload-before-show reloads the upcoming tab min(15 s, half the current slot) before its turn, and shows it even if it's still loading. Skipping it would mean a slow dashboard is never shown.
+- 2026-10-26 — Discarded tabs (Memory Saver) are reloaded in the background and shown next time round rather than activated cold. The kiosk guide will say to turn Memory Saver off.
+- 2026-10-26 — The tab actually in front is the source of truth: if a person (or Chrome, after closing the current tab) brings another rotation tab forward, rotation continues from it.
+- 2026-10-26 — While our own options page is in front, rotation holds, so configuring a screen doesn't rotate the settings away.
+- 2026-10-26 — Idle pause is event-driven (`idle.onStateChanged`): clicking Start doesn't immediately pause. Resume restarts the current item's timer. The resume delay has a 15 s minimum (an API limit).
+- 2026-10-26 — Auto-start waits 5 s after Chrome starts, so session-restored playlist tabs are adopted (prefix URL match, ignoring #fragment and trailing slash) instead of opened twice. With auto-start off, a Chrome start leaves rotation stopped.
+- 2026-10-26 — Playlist mode never closes tabs it didn't open; it closes only tabs it owns whose entry was removed from the playlist.
+- 2026-10-26 — Failing tabs reload with backoff of 5 s, 15 s, 1 min, 5 min, then every 15 min. An error is logged at the 5th attempt (milestone 3 alerts hook in there). A tab must stay healthy 3 s after a reload to count as recovered.
+- 2026-10-26 — Toolbar click toggles start/stop (no popup); settings are under right-click → Options. Default shortcut Alt+Shift+R (⌥⇧R), verified as actually assigned on Mac.
+- 2026-10-26 — The health log (2,000 entries, ring buffer) is written from milestone 1, since the engine already produces the events. The viewer and CSV export come in milestone 2.

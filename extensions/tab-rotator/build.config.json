@@ -1,0 +1,8 @@
+{
+  "entries": {
+    "background": "src/background.ts",
+    "options/options": "src/options/options.ts",
+    "offscreen/offscreen": "src/offscreen/offscreen.ts",
+    "offscreen/timer-worker": "src/offscreen/timer-worker.ts"
+  }
+}

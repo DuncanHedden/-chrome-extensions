@@ -1,0 +1,8 @@
+{
+  "extName": { "message": "Tab Rotator – Self-Healing Dashboard Display" },
+  "extDescription": {
+    "message": "Automatically rotate tabs on TVs and dashboards. Self-healing, schedules, and fleet config — a Revolver Tabs alternative."
+  },
+  "actionTitle": { "message": "Tab Rotator (click to start/stop)" },
+  "commandToggle": { "message": "Start or stop rotating tabs" }
+}

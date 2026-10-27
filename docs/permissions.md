@@ -18,6 +18,19 @@ Paste these into the Web Store dashboard's **Privacy practices** tab. Keep this 
 
 `<all_urls>`, `tabs`: not requested. (The e2e test build adds `http://localhost/*`; that build is never zipped. See DECISIONS.md.)
 
-## Multi Forward for Gmail
+## Tab Rotator
 
-_Not started._
+| Permission | Justification |
+|---|---|
+| `tabs` | Reads the URL, loading status and crash state of tabs in the rotation window, so it can switch between them, skip tabs that are loading or crashed, and match playlist URLs to open tabs. Tab data never leaves the device. |
+| `storage` | Saves the playlist, per-tab settings, rotation state (so rotation survives the service worker restarting) and a local health log of rotation events. |
+| `alarms` | Wakes the extension to switch tabs on intervals of 30 seconds or more, and runs a watchdog that re-checks the rotation every 30 seconds while it is running. |
+| `offscreen` | Runs a timer in a web worker inside an offscreen document to switch tabs on intervals shorter than 30 seconds, which chrome.alarms cannot do. Created only while rotation is running, and closed when it stops. |
+| `idle` | Pauses rotation while someone is using the keyboard or mouse, and resumes after a configurable idle time, so the screen doesn't change under a person using it. |
+| `webNavigation` | Detects when a rotated page fails to load (e.g. a DNS or connection error), so the extension can reload it with backoff instead of showing an error page on an unattended screen. Only main-frame errors for tabs in the rotation are used. |
+
+- **Host permissions:** none in the current version. (Planned: optional, requested at runtime only for the user's own config URL and webhook URL, and for playlist sites when the user enables page-content checks.)
+- **Remote code:** No.
+- **Data usage:** collects no user data.
+
+**Single purpose:** Automatically rotate between browser tabs on an unattended display, and keep that display working by recovering tabs that crash, fail to load or are closed.
