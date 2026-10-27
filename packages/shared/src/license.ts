@@ -1,12 +1,13 @@
 import { createStore } from './storage.ts';
 
 /**
- * The one place an extension asks "is this user Pro?", backed by Lemon Squeezy license keys.
+ * The one place an extension asks "is this user Pro?", backed by Polar license keys.
  *
- * Lemon Squeezy's License API is public (no secret key, no server of ours): a key is *activated* once
- * per screen as a named instance, which counts against the key's activation limit, then periodically
- * *validated*. Keys must belong to our store and product, or anyone could mint a free key in their own
- * store. Network failures never downgrade a working screen inside the offline grace period.
+ * Polar's customer-portal License Key API is public (no secret key, no server of ours): a key is
+ * *activated* once per screen with a label (the screen's name), which counts against the key's
+ * activation limit, then periodically *validated* against that activation. Keys are scoped to our
+ * Polar organization server-side; we also pin the license-key benefit(s) that may unlock Pro.
+ * Network failures never downgrade a working screen inside the offline grace period.
  */
 export interface License {
   pro: boolean;
@@ -14,13 +15,12 @@ export interface License {
   /** Last time we heard from the license server (or changed the dev override). */
   checkedAt: number;
   key?: string;
+  /** Polar activation ID for this screen. */
   instanceId?: string;
   instanceName?: string;
-  status?: string;
-  activationUsage?: number;
   activationLimit?: number | null;
   customerEmail?: string;
-  variantName?: string;
+  benefitId?: string;
   expiresAt?: string | null;
   /** Last successful validation; offline grace counts from here. */
   validatedAt?: number;
@@ -28,15 +28,16 @@ export interface License {
 }
 
 export interface LicenseConfig {
-  /** Lemon Squeezy store and product IDs that may unlock Pro. */
-  storeId: number;
-  productIds: number[];
+  /** Polar organization that sells the product. */
+  organizationId: string;
+  /** License-key benefits that unlock Pro (empty = any benefit in the organization). */
+  benefitIds: string[];
   apiBase?: string;
 }
 
 export const FREE_LICENSE: License = { pro: false, source: 'free', checkedAt: 0 };
 export const OFFLINE_GRACE_MS = 14 * 24 * 60 * 60 * 1000;
-export const LEMON_SQUEEZY_API = 'https://api.lemonsqueezy.com/v1/licenses';
+export const POLAR_API = 'https://api.polar.sh/v1/customer-portal/license-keys';
 
 export const licenseStore = createStore('local', 'license', FREE_LICENSE);
 
@@ -58,78 +59,96 @@ export async function setDevPro(pro: boolean): Promise<void> {
   await licenseStore.replace({ ...FREE_LICENSE, pro, source: pro ? 'dev' : 'free', checkedAt: Date.now() });
 }
 
-interface ApiResponse {
-  activated?: boolean;
-  valid?: boolean;
-  deactivated?: boolean;
-  error?: string | null;
-  license_key?: { status?: string; key?: string; activation_limit?: number | null; activation_usage?: number; expires_at?: string | null };
-  instance?: { id?: string; name?: string } | null;
-  meta?: { store_id?: number; product_id?: number; variant_name?: string; customer_email?: string };
+interface PolarKey {
+  benefit_id?: string;
+  limit_activations?: number | null;
+  expires_at?: string | null;
+  customer?: { email?: string } | null;
 }
-
-async function call(config: LicenseConfig, action: 'activate' | 'validate' | 'deactivate', params: Record<string, string>, fetchImpl: typeof fetch): Promise<ApiResponse> {
-  const resp = await fetchImpl(`${config.apiBase ?? LEMON_SQUEEZY_API}/${action}`, {
-    method: 'POST',
-    headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams(params).toString(),
-  });
-  // 4xx responses carry a JSON body with `error`; only treat unparseable/5xx answers as "offline".
-  let body: ApiResponse;
-  try {
-    body = (await resp.json()) as ApiResponse;
-  } catch {
-    throw new NetworkError(`License server returned HTTP ${resp.status}`);
-  }
-  if (resp.status >= 500) throw new NetworkError(body.error ?? `License server returned HTTP ${resp.status}`);
-  return body;
+interface PolarActivation {
+  id?: string;
+  label?: string;
+  license_key?: PolarKey;
 }
+type PolarBody = PolarKey & PolarActivation & { activation?: PolarActivation | null; detail?: unknown; error?: string };
 
 export class NetworkError extends Error {}
 
-/** Pure: turn an API answer into a License, enforcing store/product. */
-export function interpretResponse(config: LicenseConfig, body: ApiResponse, ok: boolean, key: string, now: number): License {
-  const base: License = {
-    pro: false,
-    source: 'paid',
-    checkedAt: now,
-    key,
-    status: body.license_key?.status,
-    activationUsage: body.license_key?.activation_usage,
-    activationLimit: body.license_key?.activation_limit ?? null,
-    expiresAt: body.license_key?.expires_at ?? null,
-    customerEmail: body.meta?.customer_email,
-    variantName: body.meta?.variant_name,
-    instanceId: body.instance?.id,
-    instanceName: body.instance?.name,
-  };
-  if (body.meta && (body.meta.store_id !== config.storeId || !config.productIds.includes(body.meta.product_id ?? -1))) {
-    return { ...base, instanceId: undefined, lastError: 'This license key is for a different product.' };
+/** POST to the License Key API. Returns status + body; throws NetworkError when the server can't be reached or is failing. */
+async function call(config: LicenseConfig, action: 'activate' | 'validate' | 'deactivate', body: Record<string, unknown>, fetchImpl: typeof fetch) {
+  const resp = await fetchImpl(`${config.apiBase ?? POLAR_API}/${action}`, {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...body, organization_id: config.organizationId }),
+  });
+  if (resp.status >= 500 || resp.status === 429) throw new NetworkError(`License server returned HTTP ${resp.status}`);
+  if (resp.status === 204) return { status: resp.status, body: {} as PolarBody };
+  let parsed: PolarBody;
+  try {
+    parsed = (await resp.json()) as PolarBody;
+  } catch {
+    throw new NetworkError(`License server returned HTTP ${resp.status}`);
   }
-  if (!ok) return { ...base, lastError: body.error ?? `License is ${body.license_key?.status ?? 'not valid'}.` };
-  return { ...base, pro: true, validatedAt: now };
+  return { status: resp.status, body: parsed };
 }
 
-export async function activateLicense(config: LicenseConfig, key: string, instanceName: string, fetchImpl: typeof fetch = fetch, now = Date.now()): Promise<License> {
-  const body = await call(config, 'activate', { license_key: key.trim(), instance_name: instanceName }, fetchImpl);
-  const license = interpretResponse(config, body, body.activated === true, key.trim(), now);
-  // Activated a key for the wrong product: give the activation slot straight back.
-  if (body.activated && !license.pro && body.instance?.id) {
-    await call(config, 'deactivate', { license_key: key.trim(), instance_id: body.instance.id }, fetchImpl).catch(() => {});
+/** A human message from a Polar error body (string detail, or a 422 validation list). */
+function errorText(status: number, body: PolarBody): string {
+  if (typeof body.detail === 'string') return body.detail;
+  if (status === 404) return 'License key not found, or it has been revoked or has expired.';
+  if (status === 403) return 'This license key cannot be activated (revoked, expired, or its screen limit is reached).';
+  if (status === 422) return 'That doesn’t look like a valid license key.';
+  return `License server returned HTTP ${status}.`;
+}
+
+/** Pure: is this key's benefit one that unlocks Pro? */
+export const benefitAllowed = (config: LicenseConfig, benefitId: string | undefined) =>
+  config.benefitIds.length === 0 || (benefitId !== undefined && config.benefitIds.includes(benefitId));
+
+export async function activateLicense(config: LicenseConfig, key: string, label: string, fetchImpl: typeof fetch = fetch, now = Date.now()): Promise<License> {
+  const trimmed = key.trim();
+  const { status, body } = await call(config, 'activate', { key: trimmed, label }, fetchImpl);
+  const base: License = { pro: false, source: 'paid', checkedAt: now, key: trimmed };
+  if (status !== 200 || !body.id) return { ...base, lastError: errorText(status, body) };
+  const lk = body.license_key ?? {};
+  const license: License = {
+    ...base,
+    instanceId: body.id,
+    instanceName: body.label ?? label,
+    activationLimit: lk.limit_activations ?? null,
+    customerEmail: lk.customer?.email,
+    benefitId: lk.benefit_id,
+    expiresAt: lk.expires_at ?? null,
+  };
+  if (!benefitAllowed(config, lk.benefit_id)) {
+    // A key for something else we sell: give the activation slot straight back.
+    await call(config, 'deactivate', { key: trimmed, activation_id: body.id }, fetchImpl).catch(() => {});
+    return { ...license, instanceId: undefined, lastError: 'This license key is for a different product.' };
   }
-  return license;
+  return { ...license, pro: true, validatedAt: now };
 }
 
 /**
- * Re-check an activated key. Offline (or server down): keep Pro until OFFLINE_GRACE_MS after the last
- * successful validation, so a network outage never turns features off on a screen nobody is watching.
+ * Re-check an activated key. A definite "not valid" (404) turns Pro off. Offline or server trouble keeps
+ * Pro until OFFLINE_GRACE_MS after the last successful validation, so a network outage never turns
+ * features off on a screen nobody is watching.
  */
 export async function validateLicense(config: LicenseConfig, license: License, fetchImpl: typeof fetch = fetch, now = Date.now()): Promise<License> {
   if (license.source !== 'paid' || !license.key || !license.instanceId) return license;
   try {
-    const body = await call(config, 'validate', { license_key: license.key, instance_id: license.instanceId }, fetchImpl);
-    const next = interpretResponse(config, body, body.valid === true, license.key, now);
-    return { ...next, instanceId: next.instanceId ?? license.instanceId, instanceName: next.instanceName ?? license.instanceName };
+    const { status, body } = await call(config, 'validate', { key: license.key, activation_id: license.instanceId }, fetchImpl);
+    if (status !== 200) return { ...license, pro: false, checkedAt: now, lastError: errorText(status, body) };
+    if (!benefitAllowed(config, body.benefit_id)) return { ...license, pro: false, checkedAt: now, lastError: 'This license key is for a different product.' };
+    return {
+      ...license,
+      pro: true,
+      checkedAt: now,
+      validatedAt: now,
+      activationLimit: body.limit_activations ?? null,
+      customerEmail: body.customer?.email ?? license.customerEmail,
+      expiresAt: body.expires_at ?? null,
+      lastError: undefined,
+    };
   } catch (error) {
     const withinGrace = license.validatedAt !== undefined && now - license.validatedAt < OFFLINE_GRACE_MS;
     return {
@@ -141,9 +160,10 @@ export async function validateLicense(config: LicenseConfig, license: License, f
   }
 }
 
-/** Free this screen's activation slot (e.g. before moving the key to another screen). */
+/** Free this screen's activation (e.g. before moving the key to another screen). */
 export async function deactivateLicense(config: LicenseConfig, license: License, fetchImpl: typeof fetch = fetch): Promise<void> {
   if (!license.key || !license.instanceId) return;
-  const body = await call(config, 'deactivate', { license_key: license.key, instance_id: license.instanceId }, fetchImpl);
-  if (!body.deactivated) throw new Error(body.error ?? 'Could not deactivate this screen.');
+  const { status, body } = await call(config, 'deactivate', { key: license.key, activation_id: license.instanceId }, fetchImpl);
+  // 404: already gone (e.g. removed in the Polar dashboard), which is the outcome we wanted.
+  if (status !== 204 && status !== 404) throw new Error(errorText(status, body));
 }

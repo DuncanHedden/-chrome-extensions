@@ -1,6 +1,6 @@
 import { h } from '@ext/shared/dom';
 import { licenseStore } from '@ext/shared/license';
-import { formatPrice, LEMON_SQUEEZY, paymentsConfigured, PRICES } from '../pricing.ts';
+import { formatPrice, POLAR, paymentsConfigured, PRICES } from '../pricing.ts';
 import type { Ctx } from './context.ts';
 import { $, sendToBackground } from './ui.ts';
 
@@ -20,14 +20,14 @@ export function initLicense(ctx: Ctx): () => void {
     error.textContent = resp.ok ? '' : resp.error ?? 'Could not deactivate.';
   });
 
-  const plans: Array<[keyof typeof LEMON_SQUEEZY.checkout, string]> = [
+  const plans: Array<[keyof typeof POLAR.checkout, string]> = [
     ['monthly', `${formatPrice(PRICES.monthly)} / month`],
     ['yearly', `${formatPrice(PRICES.yearly)} / year`],
     ['lifetime', `${formatPrice(PRICES.lifetime)} once`],
   ];
   $('#buy').replaceChildren(
     ...plans.map(([plan, label]) => {
-      const url = LEMON_SQUEEZY.checkout[plan];
+      const url = POLAR.checkout[plan];
       return url
         ? h('a', { class: 'button-link', href: url, target: '_blank', rel: 'noopener' }, `Buy: ${label} per screen`)
         : h('button', { type: 'button', disabled: true, title: 'Checkout links are not configured in this build' }, `${label} per screen`);
@@ -42,7 +42,7 @@ export function initLicense(ctx: Ctx): () => void {
     let status = '';
     if (ctx.license.pro && ctx.license.source === 'dev') status = 'Pro is on (developer build).';
     else if (paid && license.pro) {
-      status = `Pro is active on this screen${license.customerEmail ? ` (${license.customerEmail})` : ''}: ${license.activationUsage ?? '?'} of ${license.activationLimit ?? 'unlimited'} screens used on this key.`;
+      status = `Pro is active on this screen${license.customerEmail ? ` (${license.customerEmail})` : ''}. This key covers ${license.activationLimit ?? 'unlimited'} screen${license.activationLimit === 1 ? '' : 's'}.`;
     }
     $('#pro-status').textContent = status;
     if (paid && license.lastError) error.textContent = license.lastError;

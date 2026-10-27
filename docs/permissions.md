@@ -31,7 +31,7 @@ Paste these into the Web Store dashboard's **Privacy practices** tab. Keep this 
 
 | Host permission | Justification |
 |---|---|
-| `https://api.lemonsqueezy.com/*` | Checks Pro license keys with Lemon Squeezy's license API (the payment provider): activation when the user enters a key, then about twice a day. Required at install, not optional, because keys can arrive through the fleet config file on screens where nobody is present to approve a prompt. Free users never contact it. |
+| `https://api.polar.sh/*` | Checks Pro license keys with Polar's license-key API (the payment provider): activation when the user enters a key, then about twice a day. Required at install, not optional, because keys can arrive through the fleet config file on screens where nobody is present to approve a prompt. Free users never contact it. |
 
 **Optional permissions** (not granted at install; requested only when the user turns on a feature, and only for the specific addresses involved):
 

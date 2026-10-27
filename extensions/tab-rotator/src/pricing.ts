@@ -10,14 +10,14 @@ export const formatPrice = (amount: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: PRICES.currency, maximumFractionDigits: 0 }).format(amount);
 
 /**
- * Lemon Squeezy store/product that may unlock Pro, and the checkout links for each plan. Fill these in
- * from the Lemon Squeezy dashboard (Store settings -> Store ID; Products -> product ID; each variant's
- * "Share" checkout link). While storeId is 0, license activation reports "not configured".
+ * Polar organization and license-key benefits that may unlock Pro, and the checkout links for each plan.
+ * Fill these in from the Polar dashboard (see docs/payments-setup.md). While organizationId is empty,
+ * license activation reports "not configured".
  */
-export const LEMON_SQUEEZY = {
-  storeId: 0,
-  productIds: [] as number[],
+export const POLAR = {
+  organizationId: '',
+  benefitIds: [] as string[],
   checkout: { monthly: '', yearly: '', lifetime: '' },
 };
 
-export const paymentsConfigured = () => LEMON_SQUEEZY.storeId !== 0 && LEMON_SQUEEZY.productIds.length > 0;
+export const paymentsConfigured = () => POLAR.organizationId !== '';

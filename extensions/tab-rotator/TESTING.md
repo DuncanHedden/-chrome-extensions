@@ -82,7 +82,7 @@ Rebuild (`npm run build -- tab-rotator`), reload the extension, and open Options
 
 ## Milestone 3: alerts, fleet config, license keys (≈40 min)
 
-Rebuild, reload the extension, and keep **Developer build: enable Pro** ticked (until the Lemon Squeezy store exists, that's how to test Pro). Set a **screen name** under "This screen" first.
+Rebuild, reload the extension, and keep **Developer build: enable Pro** ticked (until the Polar store exists, that's how to test Pro). Set a **screen name** under "This screen" first.
 
 | # | Do | Expect |
 |---|---|---|
@@ -94,7 +94,7 @@ Rebuild, reload the extension, and keep **Developer build: enable Pro** ticked (
 | 6 | Break the file (e.g. `"defaultDurationSec": "soon"`), commit. | The screen keeps its current settings; the log and the Fleet config section show "Config rejected … /screens/<name>/defaultDurationSec: must be integer"; an alert is sent. Fix the file: it applies again. |
 | 7 | Set `"rotation": "stopped"` in the file, then `"running"`. | The screen stops, then starts, on its own. |
 | 8 | **Export / import:** click **Export this screen's settings as JSON**, change something locally, then **Import JSON…** the exported file. | Settings return to what was exported. The exported file passes validation (open it in VS Code: no squiggles). |
-| 9 | **License keys** (once the Lemon Squeezy store exists, see docs/payments-setup.md): untick developer Pro, paste a test-mode key, click **Activate on this screen**. | "Pro is active … 1 of N screens used". **Deactivate this screen** releases it (check the Lemon Squeezy dashboard). |
+| 9 | **License keys** (once the Polar store exists, see docs/payments-setup.md): untick developer Pro, paste a sandbox key, click **Activate on this screen**. | "Pro is active … This key covers N screens". **Deactivate this screen** releases it (check the activation is gone in Polar). |
 
 ### Overnight soak additions
 

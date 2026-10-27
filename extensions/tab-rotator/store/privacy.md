@@ -18,7 +18,7 @@ Tab Rotator reads the URL, title and loading state of tabs in the window it rota
 
 - **Your fleet config URL** (Pro): the screen downloads the config file from the address you enter, with the Authorization header you provide, if any.
 - **Your alert webhook** (Pro): when a screen has a problem it can't fix, recovers from one, or sends its daily heartbeat, it posts a short message to the webhook address you enter (e.g. your Slack, Teams or Discord). The message contains the screen name, a description of the event, and the URL of the affected page.
-- **License checks** (Pro): when you activate a license key, and about twice a day afterwards, the extension sends the key and this screen's name to Lemon Squeezy's license API (`api.lemonsqueezy.com`) to confirm it is valid. Lemon Squeezy processes purchases as merchant of record under [its own privacy policy](https://www.lemonsqueezy.com/privacy). Free users never contact Lemon Squeezy.
+- **License checks** (Pro): when you activate a license key, and about twice a day afterwards, the extension sends the key and this screen's name to Polar's license API (`api.polar.sh`) to confirm it is valid. Polar processes purchases as merchant of record under [its own privacy policy](https://polar.sh/legal/privacy-policy). Free users never contact Polar.
 
 Tab Rotator makes no other network requests. The dashboards you rotate load in normal browser tabs, as they would without the extension.
 

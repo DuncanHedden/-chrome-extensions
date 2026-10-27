@@ -123,7 +123,7 @@ Anywhere that serves the file over HTTPS works.
 | `Couldn't fetch fleet config (HTTP 404)` | Wrong URL, or a missing or expired token. The screen keeps its current settings. |
 | `Applied fleet config defaults; no section for "Lobby-01"` | The screen name doesn't match a key under `screens` (check spelling and case). |
 | `Alert not sent: open Settings on this screen and grant access to hooks.slack.com` | The webhook came from the file, but nobody has allowed it on this screen yet (setup step 4). |
-| `License key rejected: This license key has reached the activation limit` | More screens than the key covers. Deactivate an old screen in its settings, or buy more. |
+| `License key rejected: … activation limit reached` | More screens than the key covers. Deactivate an old screen in its settings, or buy more. |
 
 Both the **Fleet config** section and the health log show the last check, the last apply, and the last error.
 
