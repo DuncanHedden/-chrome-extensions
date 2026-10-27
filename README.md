@@ -5,7 +5,7 @@ Manifest V3 extensions rebuilt to replace abandoned MV2 ones. No analytics, no r
 | Extension | Status |
 |---|---|
 | [Regex Find](extensions/regex-find) | 1.0.0, submitted to the Web Store |
-| [Tab Rotator](extensions/tab-rotator) | milestone 3 (alerts, fleet config, license keys), in testing. See [TESTING.md](extensions/tab-rotator/TESTING.md) |
+| [Tab Rotator](extensions/tab-rotator) | feature-complete (milestones 1–3), Polar payments live; store listing ready, awaiting submission. See [TESTING.md](extensions/tab-rotator/TESTING.md) |
 
 ## Layout
 
@@ -14,7 +14,8 @@ extensions/<name>/   manifest.json, src/, public/ (static files copied as-is), s
 packages/shared/     storage, i18n, DOM helpers shared by all extensions
 scripts/             build.ts, zip.ts, render-assets.ts
 testing/             Playwright helpers (launch with extension, fixture server)
-docs/                permissions.md, store-submission-checklist.md
+docs/                permissions.md, store-submission-checklist.md, kiosk-setup.md, remote-config.md,
+                     payments-setup.md, competitor-comparison.md
 ```
 
 ## Commands
