@@ -29,7 +29,13 @@ Paste these into the Web Store dashboard's **Privacy practices** tab. Keep this 
 | `idle` | Pauses rotation while someone is using the keyboard or mouse, and resumes after a configurable idle time, so the screen doesn't change under a person using it. |
 | `webNavigation` | Detects when a rotated page fails to load (e.g. a DNS or connection error), so the extension can reload it with backoff instead of showing an error page on an unattended screen. Only main-frame errors for tabs in the rotation are used. |
 
-- **Host permissions:** none in the current version. (Planned: optional, requested at runtime only for the user's own config URL and webhook URL, and for playlist sites when the user enables page-content checks.)
+**Optional permissions** (not granted at install; requested only when the user turns on the feature, and only for the sites involved):
+
+| Permission | Justification |
+|---|---|
+| `scripting` + `optional_host_permissions` (`https://*/*`, `http://*/*`) | Only when the user enables "also compare the page text" on a frozen-page rule: Tab Rotator asks for access to the specific sites in their rotation, then reads a hash of the page's visible text once a minute to tell whether the dashboard has stopped updating. The text itself is never stored or sent anywhere. Milestone 3 will use the same mechanism to reach the user's own config URL and webhook URL. The broad patterns are listed only because the user's sites aren't known in advance; Chrome prompts for each specific origin. |
+
+- **Host permissions at install:** none.
 - **Remote code:** No.
 - **Data usage:** collects no user data.
 

@@ -3,10 +3,12 @@
   "name": "__MSG_extName__",
   "short_name": "Tab Rotator",
   "description": "__MSG_extDescription__",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "default_locale": "en",
   "minimum_chrome_version": "116",
   "permissions": ["tabs", "storage", "alarms", "offscreen", "idle", "webNavigation"],
+  "optional_permissions": ["scripting"],
+  "optional_host_permissions": ["https://*/*", "http://*/*"],
   "background": {
     "service_worker": "background.js"
   },

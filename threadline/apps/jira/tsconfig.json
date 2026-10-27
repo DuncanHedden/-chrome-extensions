@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "@threadline/core": ["../../packages/core/src/index.ts"],
+      "@threadline/admin-ui": ["../../packages/admin-ui/src/index.ts"]
+    }
+  },
+  "include": ["src"]
+}

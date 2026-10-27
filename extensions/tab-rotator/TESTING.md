@@ -58,3 +58,24 @@ Run each on real hardware with service-worker DevTools **closed**. Afterwards, c
   - Chrome Task manager: note each dashboard tab's memory at the start and end. Growth there is the dashboard's leak, not ours, but it's what will eventually kill a screen. Tell me and we'll make "reload every N hours" a feature.
 
 Send me anything surprising: what you did, what you saw, and a copy of the Recent events list (or `chrome.storage.local.get('healthLog')` from the service-worker console).
+
+## Milestone 2: Pro features (≈30 min)
+
+Rebuild (`npm run build -- tab-rotator`), reload the extension, and open Options. At the bottom, tick **Developer build: enable Pro features for testing**. The badge in the top right of the page should say **Pro (developer)**. Untick it at any point to check that the Pro sections grey out and stop having any effect.
+
+| # | Do | Expect |
+|---|---|---|
+| 1 | **Detectors:** playlist mode, add `https://httpbin.org/status/502` as an entry, then "Add a ready-made rule → Error or expired-session title". | That tab is never shown; Health log shows "Bad state … detected; reloading" then reload attempts backing off. Remove the rule: next pass it's shown. |
+| 2 | Add a rule "the URL matches `/login`", action "reopen the original URL". Add a playlist entry for a site that redirects to a login page when signed out (e.g. a private GitHub repo in a signed-out profile). | It's skipped, sent back to the original URL with backoff, and logged. |
+| 3 | Add "Frozen" with 1 minute on a static page such as `https://example.com`. | About every minute: "Reloading: nothing changed for 1 min." Tick "Also compare the page text": Chrome asks permission for that site. |
+| 4 | **Display hours:** tick "Only rotate during these hours", set today's hours to end 2 minutes from now. | Within 30 s of the end time: black "Outside display hours" screen, and "Outside display hours" in the log. Set the end time later again: back to rotation, and the black tab closes. |
+| 5 | Try "A page" and "A different playlist" as off-hours content. | The page or playlist shows; the main playlist's tabs stay open behind it. |
+| 6 | Set an overnight window, e.g. 22:00–06:00 on today's day, and change the time zone (e.g. `Asia/Tokyo`). | "Right now is inside/outside these hours" updates to match the clock in that zone. |
+| 7 | **Settings lock:** set a PIN. Close Options. Click the toolbar icon. | Options opens at the PIN prompt instead of stopping rotation. While the prompt is on screen, rotation carries on and takes the screen back. |
+| 8 | Enter a wrong PIN 5 times. | "Too many wrong PINs" for 1 min; "Wrong settings PIN entered" in the log. The right PIN unlocks, and rotation holds while you're in Options. |
+| 9 | **Health log:** filter "Errors only", search for a URL, click **Export CSV**. | The CSV opens in Excel/Numbers/Sheets with one row per event and sortable UTC times. |
+
+### Overnight soak additions
+
+- [ ] Run the 12-hour soak with display hours on, ending in the evening and starting the next morning. Next morning: one "Outside display hours" and one "Display hours started" in the log, and rotation running.
+- [ ] Leave the "Signed out" and "Error title" rules on during the soak; check the log for false positives.

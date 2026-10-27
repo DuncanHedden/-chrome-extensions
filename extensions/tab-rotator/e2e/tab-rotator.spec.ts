@@ -101,3 +101,45 @@ test('a playlist tab closed or crashed mid-rotation is healed and logged', async
   const crash = (await healthLog()).find((e) => e.code === 'crashed')!;
   expect(crash.url).toBe(url('c'));
 });
+
+test('options: Pro sections are gated, the PIN lock works, and the health log exports as CSV', async () => {
+  const page = await ext.context.newPage();
+  await page.goto(`chrome-extension://${ext.extensionId}/options/options.html`);
+
+  // Free: Pro sections are greyed out and inert.
+  await expect(page.locator('#plan')).toHaveText('Free');
+  await expect(page.locator('section[data-feature="detectors"]')).toHaveClass(/locked/);
+  await expect(page.locator('#add-detector')).toBeDisabled();
+  await expect(page.locator('#log-export')).toBeDisabled();
+
+  // Developer builds can switch Pro on for testing.
+  await page.locator('#dev-pro-toggle').check();
+  await expect(page.locator('#plan')).toHaveText('Pro (developer)');
+  await expect(page.locator('#add-detector')).toBeEnabled();
+
+  // Turn on the lock; a fresh visit needs the PIN, and wrong PINs are logged.
+  await page.locator('#new-pin').fill('2468');
+  await page.locator('#confirm-pin').fill('2468');
+  await page.locator('#set-pin').click();
+  await expect(page.locator('#lock-on')).toBeVisible();
+  await page.reload();
+  await expect(page.locator('#lock-gate')).toBeVisible();
+  await expect(page.locator('#settings')).toBeHidden();
+  await expect(page.locator('#toggle')).toBeHidden();
+  await page.locator('#unlock-pin').fill('1111');
+  await page.locator('#unlock-form button').click();
+  await expect(page.locator('#unlock-error')).toHaveText('Wrong PIN.');
+  await expect.poll(async () => (await healthLog()).map((e) => e.code)).toContain('lock-failed');
+  await page.locator('#unlock-pin').fill('2468');
+  await page.locator('#unlock-form button').click();
+  await expect(page.locator('#settings')).toBeVisible();
+  expect(page.url()).toMatch(/#unlocked$/);
+
+  // CSV export of the log.
+  const download = page.waitForEvent('download');
+  await page.locator('#log-export').click();
+  const csv = await (await (await download).createReadStream()).toArray();
+  const text = Buffer.concat(csv).toString('utf8');
+  expect(text.split('\r\n')[0]).toBe('time_utc,local_time,screen,level,event,message,url');
+  expect(text).toContain('lock-failed');
+});

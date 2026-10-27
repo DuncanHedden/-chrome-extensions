@@ -1,0 +1,4 @@
+/* Black, so a TV left on overnight draws little power and doesn't burn in; the text is barely visible. */
+html, body { margin: 0; height: 100%; background: #000; cursor: none; }
+body { display: flex; align-items: flex-end; justify-content: flex-end; }
+p { margin: 24px; font: 14px system-ui, sans-serif; color: #222; }

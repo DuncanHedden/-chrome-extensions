@@ -27,13 +27,15 @@ export class FakeChrome {
   /** Tab IDs activated, in order. */
   activations: number[] = [];
   reloads: number[] = [];
+  navigations: Array<{ tabId: number; url: string }> = [];
+  contentHashes: Record<number, string> = {};
 
   constructor(public settings: Settings = settingsDefault()) {}
 
   addTab(url: string, patch: Partial<TabSnapshot> = {}, windowId = 1): TabSnapshot {
     const index = this.tabs.filter((t) => t.windowId === windowId).length;
     const tab: TabSnapshot = {
-      id: this.nextId++, windowId, index, url, status: 'complete', active: false, discarded: false, ...patch,
+      id: this.nextId++, windowId, index, url, status: 'complete', active: false, discarded: false, title: url, favIconUrl: '', ...patch,
     };
     this.tabs.push(tab);
     if (tab.active) this.activate(tab.id, false);
@@ -66,7 +68,7 @@ export class FakeChrome {
   }
 
   world(): World {
-    return { now: this.now, windows: this.windows, tabs: structuredClone(this.tabs), selfOrigin: SELF };
+    return { now: this.now, windows: this.windows, tabs: structuredClone(this.tabs), selfOrigin: SELF, contentHashes: this.contentHashes };
   }
 
   start() {
@@ -90,11 +92,15 @@ export class FakeChrome {
         }
         case 'create': {
           const tab = this.addTab(action.url, {}, action.windowId);
-          result.state.playlistTabs[action.entryId] = tab.id;
+          (action.list === 'offHours' ? result.state.offHoursTabs : result.state.playlistTabs)[action.entryId] = tab.id;
           break;
         }
         case 'close':
           this.closeTab(action.tabId);
+          break;
+        case 'navigate':
+          this.navigations.push({ tabId: action.tabId, url: action.url });
+          Object.assign(this.tab(action.tabId), { url: action.url, status: 'loading' });
           break;
       }
     }

@@ -11,6 +11,7 @@
       <header>
         <img src="../icons/icon-48.png" alt="" width="40" height="40" />
         <h1>Tab Rotator</h1>
+        <span id="plan" class="plan"></span>
       </header>
 
       <section class="status" aria-live="polite">
@@ -18,58 +19,150 @@
           <strong id="status-text">…</strong>
           <div id="status-detail" class="hint"></div>
         </div>
-        <button type="button" id="toggle" class="primary">Start</button>
-      </section>
-      <p class="hint">While this settings tab is in front, rotation holds on it. Switch to another tab and it carries on.</p>
-
-      <section>
-        <h2>What to rotate</h2>
-        <label><input type="radio" name="source" value="window" /> The tabs in this window</label>
-        <label><input type="radio" name="source" value="playlist" /> A playlist of URLs (opened and kept open by Tab Rotator)</label>
-        <label class="inline">Show each tab for <input type="number" name="defaultDurationSec" min="2" max="86400" step="1" /> seconds by default</label>
+        <button type="button" id="toggle" class="primary unlocked-only">Start</button>
       </section>
 
-      <section id="playlist-section">
-        <h2>Playlist</h2>
-        <p class="hint">Rotates in this order. Leave duration blank to use the default.</p>
-        <table class="items">
-          <thead><tr><th>URL</th><th>Seconds</th><th>Reload before showing</th><th></th></tr></thead>
-          <tbody id="playlist"></tbody>
-        </table>
-        <button type="button" id="add-entry">Add URL</button>
+      <!-- Shown instead of everything below while the settings lock is on. -->
+      <section id="lock-gate" hidden>
+        <h2>Settings are locked</h2>
+        <p class="hint">Enter the PIN to change settings or start/stop rotation.</p>
+        <form id="unlock-form" class="row">
+          <input id="unlock-pin" type="password" inputmode="numeric" autocomplete="off" pattern="\d{4,8}" placeholder="PIN" aria-label="PIN" />
+          <button type="submit" class="primary">Unlock</button>
+        </form>
+        <p id="unlock-error" class="error" role="alert"></p>
       </section>
 
-      <section id="rules-section">
-        <h2>Per-tab settings</h2>
-        <p class="hint">For tabs whose URL starts with the given text. The first matching rule wins; other tabs use the default.</p>
-        <table class="items">
-          <thead><tr><th>URL starts with</th><th>Seconds</th><th>Reload before showing</th><th></th></tr></thead>
-          <tbody id="rules"></tbody>
-        </table>
-        <button type="button" id="add-rule">Add rule</button>
-      </section>
+      <div id="settings" class="unlocked-only">
+        <p class="hint">While this settings tab is in front, rotation holds on it. Switch to another tab and it carries on.</p>
 
-      <section>
-        <h2>Unattended operation</h2>
-        <label><input type="checkbox" name="autoStart" /> Start rotating when the browser starts</label>
-        <label><input type="checkbox" name="pauseOnActivity" /> Pause while someone uses the keyboard or mouse</label>
-        <label class="inline indent">Resume after <input type="number" name="resumeAfterIdleSec" min="15" max="3600" step="1" /> seconds without input</label>
-        <label><input type="checkbox" name="skipLoading" /> Skip tabs that are still loading</label>
-        <label><input type="checkbox" name="selfHeal" /> Reload tabs that crash or fail to load (backing off up to every 15 min)</label>
-        <label class="inline indent">Treat a page as failed if it is still loading after <input type="number" name="loadTimeoutSec" min="10" max="600" step="1" /> seconds</label>
-      </section>
+        <section>
+          <h2>What to rotate</h2>
+          <label><input type="radio" name="source" value="window" /> The tabs in this window</label>
+          <label><input type="radio" name="source" value="playlist" /> A playlist of URLs (opened and kept open by Tab Rotator)</label>
+          <label class="inline">Show each tab for <input type="number" name="defaultDurationSec" min="2" max="86400" step="1" /> seconds by default</label>
+        </section>
 
-      <section>
-        <h2>Recent events</h2>
-        <ol id="log" class="log"></ol>
-        <p id="log-empty" class="hint">Nothing yet.</p>
-      </section>
+        <section id="playlist-section">
+          <h2>Playlist</h2>
+          <p class="hint">Rotates in this order. Leave duration blank to use the default.</p>
+          <div id="playlist"></div>
+        </section>
 
-      <section>
-        <h2>Keyboard shortcut</h2>
-        <p>Start/stop with <kbd id="shortcut">…</kbd>, or click the toolbar icon.</p>
-        <button type="button" id="change-shortcut">Change shortcut</button>
-      </section>
+        <section id="rules-section">
+          <h2>Per-tab settings</h2>
+          <p class="hint">For tabs whose URL starts with the given text. The first matching rule wins; other tabs use the default.</p>
+          <div id="rules"></div>
+        </section>
+
+        <section>
+          <h2>Unattended operation</h2>
+          <label><input type="checkbox" name="autoStart" /> Start rotating when the browser starts</label>
+          <label><input type="checkbox" name="pauseOnActivity" /> Pause while someone uses the keyboard or mouse</label>
+          <label class="inline indent">Resume after <input type="number" name="resumeAfterIdleSec" min="15" max="3600" step="1" /> seconds without input</label>
+          <label><input type="checkbox" name="skipLoading" /> Skip tabs that are still loading</label>
+          <label><input type="checkbox" name="selfHeal" /> Reload tabs that crash or fail to load (backing off up to every 15 min)</label>
+          <label class="inline indent">Treat a page as failed if it is still loading after <input type="number" name="loadTimeoutSec" min="10" max="600" step="1" /> seconds</label>
+        </section>
+
+        <section class="pro" data-feature="schedules">
+          <h2>Display hours <span class="badge">Pro</span></h2>
+          <fieldset>
+            <label><input type="checkbox" id="schedule-enabled" /> Only rotate during these hours</label>
+            <div id="schedule-windows"></div>
+            <button type="button" id="add-window">Add hours</button>
+            <label class="inline">Time zone <input type="text" id="schedule-tz" list="time-zones" placeholder="This computer's" size="40" /></label>
+            <datalist id="time-zones"></datalist>
+            <span id="schedule-tz-error" class="error"></span>
+            <h3>Outside these hours, show</h3>
+            <label><input type="radio" name="offHoursKind" value="blank" /> A blank (black) screen</label>
+            <label><input type="radio" name="offHoursKind" value="page" /> A page: <input type="url" id="off-hours-url" placeholder="https://intranet.example/welcome" size="40" /></label>
+            <label><input type="radio" name="offHoursKind" value="playlist" /> A different playlist</label>
+            <div id="off-hours-playlist"></div>
+            <p id="schedule-now" class="hint"></p>
+          </fieldset>
+          <p class="unlock"><a href="#pro">Unlock with Pro</a></p>
+        </section>
+
+        <section class="pro" data-feature="detectors">
+          <h2>Bad-state detection <span class="badge">Pro</span></h2>
+          <p class="hint">Rules for screens that look fine to Chrome but are wrong: signed out, an error page, or frozen. The first matching rule applies. Reload and reopen retry with the same backoff as crashes.</p>
+          <fieldset>
+            <div id="detectors"></div>
+            <div class="row">
+              <button type="button" id="add-detector">Add rule</button>
+              <select id="add-preset" aria-label="Add a ready-made rule"><option value="">Add a ready-made rule…</option></select>
+            </div>
+          </fieldset>
+          <p class="unlock"><a href="#pro">Unlock with Pro</a></p>
+        </section>
+
+        <section class="pro" data-feature="healthLog" data-free-visible>
+          <h2>Health log <span class="badge">Pro</span></h2>
+          <p class="hint">Every rotation anomaly and recovery on this screen, newest first. Kept on this computer (last 2,000 events).</p>
+          <div id="log-tools" class="row pro-only">
+            <select id="log-level" aria-label="Filter by level">
+              <option value="">All events</option>
+              <option value="warn">Warnings and errors</option>
+              <option value="error">Errors only</option>
+            </select>
+            <input type="search" id="log-search" placeholder="Search…" aria-label="Search the log" />
+            <span id="log-count" class="hint"></span>
+            <span class="spacer"></span>
+            <button type="button" id="log-export">Export CSV</button>
+            <button type="button" id="log-clear">Clear</button>
+          </div>
+          <div class="log-wrap">
+            <table class="log">
+              <thead><tr><th>Time</th><th>Event</th><th>Page</th></tr></thead>
+              <tbody id="log"></tbody>
+            </table>
+          </div>
+          <p id="log-empty" class="hint">Nothing yet.</p>
+          <p class="unlock">Showing the last 20 events. <a href="#pro">Full history and CSV export with Pro</a></p>
+        </section>
+
+        <section class="pro" data-feature="settingsLock">
+          <h2>Settings lock <span class="badge">Pro</span></h2>
+          <p class="hint">Require a PIN to change settings or start/stop rotation, so people walking past can't break the screen. The toolbar button and shortcut open this page instead of stopping rotation. This deters casual tampering; to fully lock a kiosk down, use Chrome policies (see the kiosk setup guide).</p>
+          <fieldset>
+            <div id="lock-off" class="row">
+              <input id="new-pin" type="password" inputmode="numeric" autocomplete="new-password" placeholder="New PIN (4–8 digits)" aria-label="New PIN" />
+              <input id="confirm-pin" type="password" inputmode="numeric" autocomplete="new-password" placeholder="Repeat PIN" aria-label="Repeat PIN" />
+              <button type="button" id="set-pin">Turn on lock</button>
+            </div>
+            <div id="lock-on" class="row" hidden>
+              <span>Lock is on.</span>
+              <button type="button" id="lock-now">Lock now</button>
+              <button type="button" id="remove-lock">Remove lock</button>
+            </div>
+            <p id="lock-error" class="error" role="alert"></p>
+          </fieldset>
+          <p class="unlock"><a href="#pro">Unlock with Pro</a></p>
+        </section>
+
+        <section>
+          <h2>Keyboard shortcut</h2>
+          <p>Start/stop with <kbd id="shortcut">…</kbd>, or click the toolbar icon.</p>
+          <button type="button" id="change-shortcut">Change shortcut</button>
+        </section>
+
+        <section id="pro" class="pro-card">
+          <h2>Tab Rotator Pro</h2>
+          <p>For IT and ops teams who look after screens they never touch. Priced per screen:</p>
+          <p class="prices" id="prices"></p>
+          <ul>
+            <li><strong>Bad-state detection</strong>: signed-out, error and frozen pages are fixed automatically</li>
+            <li><strong>Health log</strong> with CSV export: what happened on this screen, and when</li>
+            <li><strong>Display hours</strong> with an off-hours screen or playlist</li>
+            <li><strong>Settings lock</strong> with a PIN</li>
+            <li>Coming next: <strong>alerts</strong> to Slack/Teams/webhooks, and <strong>fleet config</strong> from one file for all your screens</li>
+          </ul>
+          <p id="pro-status"></p>
+          <button type="button" id="upgrade" class="primary" disabled>Upgrade (available soon)</button>
+          <label id="dev-pro" hidden><input type="checkbox" id="dev-pro-toggle" /> Developer build: enable Pro features for testing</label>
+        </section>
+      </div>
 
       <footer class="hint">
         Tab Rotator runs entirely in this browser: no analytics, no telemetry, nothing sent anywhere.

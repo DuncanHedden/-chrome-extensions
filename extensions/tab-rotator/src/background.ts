@@ -1,5 +1,17 @@
 import { MIN_IDLE_SEC } from './engine/defaults.ts';
-import { clearLoadError, recordLoadError, setPaused, start, stop, tick, toggle } from './engine/runtime.ts';
+import {
+  clearLoadError,
+  clearLog,
+  effectiveSettings,
+  recordLoadError,
+  setPaused,
+  start,
+  stop,
+  tick,
+  toggle,
+  writeLog,
+} from './engine/runtime.ts';
+import type { LogEntry } from './engine/types.ts';
 import { settingsStore, stateStore } from './engine/stores.ts';
 import { isTimerAlarm, scheduleWake } from './engine/timer.ts';
 
@@ -12,7 +24,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (isTimerAlarm(alarm.name)) void tick();
 });
 
-chrome.runtime.onMessage.addListener((message: { target?: string; type?: string }, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message: { target?: string; type?: string; entry?: LogEntry }, sender, sendResponse) => {
   if (message.target !== 'background') return;
   // From the options page, rotate the window it's open in.
   const windowId = sender.tab?.windowId;
@@ -21,6 +33,8 @@ chrome.runtime.onMessage.addListener((message: { target?: string; type?: string 
     start: () => start(windowId),
     stop,
     toggle: () => toggle(windowId),
+    clearLog,
+    log: () => writeLog(message.entry ? [{ ...message.entry, at: Date.now() }] : []),
   };
   const handler = handlers[message.type ?? ''];
   if (handler) {
@@ -29,9 +43,14 @@ chrome.runtime.onMessage.addListener((message: { target?: string; type?: string 
   }
 });
 
-chrome.action.onClicked.addListener((tab) => void toggle(tab.windowId));
+// With the settings lock on, the toolbar and shortcut open the (PIN-protected) settings instead.
+async function toggleUnlessLocked(windowId: number | undefined) {
+  if ((await effectiveSettings()).lock.enabled) await chrome.runtime.openOptionsPage();
+  else await toggle(windowId);
+}
+chrome.action.onClicked.addListener((tab) => void toggleUnlessLocked(tab.windowId));
 chrome.commands.onCommand.addListener((command, tab) => {
-  if (command === 'toggle-rotation') void toggle(tab?.windowId);
+  if (command === 'toggle-rotation') void toggleUnlessLocked(tab?.windowId);
 });
 
 // Tab changes that matter to rotation. Title/favicon updates are ignored: dashboards change those constantly.
@@ -58,7 +77,7 @@ chrome.idle.onStateChanged.addListener(async (idleState) => {
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area !== 'local' || !changes.settings) return;
+  if (area !== 'local' || !(changes.settings || changes.license)) return;
   void applyIdleInterval();
   void tickIfRunning(); // playlist or durations edited while running
 });

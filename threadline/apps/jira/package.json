@@ -1,0 +1,29 @@
+{
+  "name": "@threadline/jira",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Threadline — Google Chat for Jira (Forge app)",
+  "scripts": {
+    "build": "vite build --config static/admin/vite.config.ts",
+    "ui:dev": "vite --config static/admin/vite.config.ts --mode mock",
+    "predeploy": "npm run build -w @threadline/core --prefix ../.. && npm run build",
+    "deploy": "forge deploy"
+  },
+  "dependencies": {
+    "@forge/api": "8.4.0",
+    "@forge/bridge": "7.2.1",
+    "@forge/events": "3.0.9",
+    "@forge/kvs": "2.1.1",
+    "@forge/resolver": "2.0.2",
+    "@threadline/admin-ui": "*",
+    "@threadline/core": "*",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "vite": "8.3.5"
+  }
+}

@@ -11,6 +11,14 @@ export const DEFAULT_SETTINGS: Settings = {
   pauseOnActivity: true,
   resumeAfterIdleSec: 60,
   autoStart: false,
+  detectors: [],
+  schedule: {
+    enabled: false,
+    windows: [{ id: 'weekdays', days: [1, 2, 3, 4, 5], start: '07:00', end: '18:00' }],
+    timeZone: '',
+    offHours: { kind: 'blank', url: '', entries: [] },
+  },
+  lock: { enabled: false, salt: '', hash: '' },
 };
 
 export const INITIAL_STATE: RotationState = {
@@ -27,6 +35,11 @@ export const INITIAL_STATE: RotationState = {
   failures: {},
   loadErrors: {},
   loadingSince: {},
+  offHours: false,
+  offHoursTabs: {},
+  fingerprints: {},
+  detectorHits: {},
+  homeUrls: {},
 };
 
 export const MIN_DURATION_SEC = 2;
