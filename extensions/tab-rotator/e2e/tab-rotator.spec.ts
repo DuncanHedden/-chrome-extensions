@@ -1,3 +1,7 @@
+import { mkdtemp, writeFile } from 'node:fs/promises';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
@@ -24,7 +28,7 @@ test.afterEach(async () => {
 });
 
 /** Calls into the service worker (see the end of src/background.ts). */
-type Api = { tabRotator: Record<'start' | 'stop', () => Promise<unknown>> };
+type Api = { tabRotator: Record<'start' | 'stop' | 'pollFleet', () => Promise<unknown>> };
 
 async function configure(patch: Partial<Settings>) {
   await ext.serviceWorker.evaluate(async (p) => {
@@ -142,4 +146,67 @@ test('options: Pro sections are gated, the PIN lock works, and the health log ex
   const text = Buffer.concat(csv).toString('utf8');
   expect(text.split('\r\n')[0]).toBe('time_utc,local_time,screen,level,event,message,url');
   expect(text).toContain('lock-failed');
+});
+
+test('fleet config: a served file sets the playlist, the next poll applies edits, and an invalid file is rejected with an alert', async () => {
+  // The config file lives in a temp dir served over HTTP; a second server records webhook POSTs.
+  const dir = await mkdtemp(path.join(tmpdir(), 'tab-rotator-fleet-'));
+  const configServer = await serveDirectory(dir);
+  const received: string[] = [];
+  const webhook = createServer((req, res) => {
+    let body = '';
+    req.on('data', (c) => (body += c));
+    req.on('end', () => {
+      received.push(body);
+      res.writeHead(200).end('ok');
+    });
+  });
+  await new Promise<void>((r) => webhook.listen(0, 'localhost', r));
+  const webhookUrl = `http://localhost:${(webhook.address() as AddressInfo).port}/hook`;
+
+  const writeConfig = (screen: object) =>
+    writeFile(path.join(dir, 'screens.json'), JSON.stringify({ version: 1, defaults: { alerts: { webhookUrl, format: 'json' } }, screens: { 'Wall-1': screen } }));
+
+  try {
+    await ext.serviceWorker.evaluate(async (configUrl) => {
+      await chrome.storage.local.set({ license: { pro: true, source: 'dev', checkedAt: 1 } });
+      const { settings } = await chrome.storage.local.get('settings');
+      await chrome.storage.local.set({
+        settings: { ...(settings ?? {}), screenName: 'Wall-1', pauseOnActivity: false, fleet: { configUrl, authHeader: '', pollMinutes: 5 } },
+      });
+    }, `${configServer.origin}/screens.json`);
+    const poll = () => ext.serviceWorker.evaluate(() => (globalThis as unknown as Api).tabRotator.pollFleet());
+    const playlistUrls = () =>
+      ext.serviceWorker.evaluate(async () => {
+        const { settings } = (await chrome.storage.local.get('settings')) as { settings: Settings };
+        return settings.playlist.map((e) => e.url);
+      });
+    const openUrls = async () => (await tabs()).map((t) => t.url).filter((u) => u?.startsWith(server.origin)).sort();
+
+    // First poll: playlist from the file, and rotation started remotely.
+    await writeConfig({ rotation: 'running', source: 'playlist', defaultDurationSec: 30, playlist: [{ url: url('a') }, { url: url('b') }] });
+    await poll();
+    expect(await playlistUrls()).toEqual([url('a'), url('b')]);
+    await expect.poll(openUrls).toEqual([url('a'), url('b')]);
+    expect(await ext.serviceWorker.evaluate(() => chrome.action.getBadgeText({}))).toBe('ON');
+
+    // Edit the file: the next poll swaps the playlist; tabs follow.
+    await writeConfig({ rotation: 'running', source: 'playlist', defaultDurationSec: 30, playlist: [{ url: url('c') }] });
+    await poll();
+    expect(await playlistUrls()).toEqual([url('c')]);
+    await expect.poll(openUrls).toEqual([url('c')]);
+
+    // Broken file: rejected, last good config stays, and the webhook hears about it.
+    await writeFile(path.join(dir, 'screens.json'), JSON.stringify({ version: 1, screens: { 'Wall-1': { defaultDurationSec: 'soon' } } }));
+    await poll();
+    expect(await playlistUrls()).toEqual([url('c')]);
+    await expect.poll(async () => (await healthLog()).map((e) => e.code)).toContain('config-rejected');
+    await expect.poll(() => received.length).toBeGreaterThan(0);
+    const alert = JSON.parse(received.at(-1)!);
+    expect(alert).toMatchObject({ source: 'tab-rotator', event: 'incident', screen: 'Wall-1', level: 'error' });
+    expect(alert.message).toContain('/screens/Wall-1/defaultDurationSec');
+  } finally {
+    await configServer.close();
+    await new Promise((r) => webhook.close(r));
+  }
 });

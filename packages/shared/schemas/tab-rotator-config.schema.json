@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://duncanhedden.github.io/-chrome-extensions/packages/shared/schemas/tab-rotator-config.schema.json",
+  "title": "Tab Rotator fleet config",
+  "description": "One file for every screen. Each screen applies `defaults`, then its own section under `screens` (matched by the screen name set on that screen). Objects are merged; arrays replace.",
+  "type": "object",
+  "required": ["version"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "const": 1, "description": "Config format version. Always 1 for now." },
+    "defaults": { "$ref": "#/$defs/screen" },
+    "screens": {
+      "type": "object",
+      "description": "Per-screen overrides, keyed by screen name (case-sensitive).",
+      "patternProperties": { "^[A-Za-z0-9][A-Za-z0-9 ._-]{0,63}$": { "$ref": "#/$defs/screen" } },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "seconds": { "type": "integer", "minimum": 2, "maximum": 86400 },
+    "hhmm": { "type": "string", "pattern": "^([01]?\\d|2[0-3]):[0-5]\\d$" },
+    "entry": {
+      "type": "object",
+      "required": ["url"],
+      "additionalProperties": false,
+      "properties": {
+        "url": { "type": "string", "format": "uri" },
+        "durationSec": { "type": ["integer", "null"], "minimum": 2, "maximum": 86400 },
+        "reloadBeforeShow": { "type": "boolean" }
+      }
+    },
+    "rule": {
+      "type": "object",
+      "required": ["urlPrefix"],
+      "additionalProperties": false,
+      "properties": {
+        "urlPrefix": { "type": "string", "minLength": 1 },
+        "durationSec": { "type": ["integer", "null"], "minimum": 2, "maximum": 86400 },
+        "reloadBeforeShow": { "type": "boolean" }
+      }
+    },
+    "detector": {
+      "type": "object",
+      "required": ["name", "kind", "action"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "enabled": { "type": "boolean" },
+        "kind": { "enum": ["url", "title", "unchanged"] },
+        "pattern": { "type": "string", "description": "Text (case-insensitive) or /regex/flags. For url and title." },
+        "minutes": { "type": "integer", "minimum": 1, "maximum": 1440, "description": "For unchanged." },
+        "checkContent": { "type": "boolean", "description": "For unchanged. Needs site permission granted on the screen." },
+        "appliesTo": { "type": "string" },
+        "action": { "enum": ["reload", "reopen", "skip", "alert"] }
+      }
+    },
+    "schedule": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "timeZone": { "type": "string", "description": "IANA zone, e.g. Europe/London. Empty = the screen's own." },
+        "windows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["days", "start", "end"],
+            "additionalProperties": false,
+            "properties": {
+              "days": { "type": "array", "minItems": 1, "items": { "type": "integer", "minimum": 0, "maximum": 6 }, "description": "0 = Sunday … 6 = Saturday." },
+              "start": { "$ref": "#/$defs/hhmm" },
+              "end": { "$ref": "#/$defs/hhmm" }
+            }
+          }
+        },
+        "offHours": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "enum": ["blank", "page", "playlist"] },
+            "url": { "type": "string" },
+            "playlist": { "type": "array", "maxItems": 100, "items": { "$ref": "#/$defs/entry" } }
+          }
+        }
+      }
+    },
+    "screen": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "rotation": { "enum": ["running", "stopped"], "description": "Start or stop rotation remotely." },
+        "source": { "enum": ["window", "playlist"] },
+        "defaultDurationSec": { "$ref": "#/$defs/seconds" },
+        "playlist": { "type": "array", "maxItems": 100, "items": { "$ref": "#/$defs/entry" } },
+        "tabRules": { "type": "array", "maxItems": 100, "items": { "$ref": "#/$defs/rule" } },
+        "skipLoading": { "type": "boolean" },
+        "selfHeal": { "type": "boolean" },
+        "loadTimeoutSec": { "type": "integer", "minimum": 10, "maximum": 600 },
+        "pauseOnActivity": { "type": "boolean" },
+        "resumeAfterIdleSec": { "type": "integer", "minimum": 15, "maximum": 3600 },
+        "autoStart": { "type": "boolean" },
+        "detectors": { "type": "array", "maxItems": 50, "items": { "$ref": "#/$defs/detector" } },
+        "schedule": { "$ref": "#/$defs/schedule" },
+        "alerts": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "webhookUrl": { "type": "string", "description": "Empty to turn alerts off." },
+            "format": { "enum": ["slack", "teams", "discord", "json"] },
+            "heartbeat": { "type": "boolean" },
+            "heartbeatTime": { "$ref": "#/$defs/hhmm" }
+          }
+        },
+        "lock": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "pin": { "type": "string", "pattern": "^\\d{4,8}$", "description": "Stored hashed on the screen. Keep this file private." }
+          }
+        },
+        "license": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["key"],
+          "properties": { "key": { "type": "string", "minLength": 8, "description": "Each screen activates the key once; keep this file private." } }
+        },
+        "pollMinutes": { "type": "integer", "minimum": 1, "maximum": 1440, "description": "How often screens re-check this file." }
+      }
+    }
+  }
+}

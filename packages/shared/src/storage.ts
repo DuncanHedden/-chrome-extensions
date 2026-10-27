@@ -3,6 +3,8 @@ type AreaName = 'sync' | 'local';
 export interface Store<T extends object> {
   get(): Promise<T>;
   set(patch: Partial<T>): Promise<void>;
+  /** Overwrite the whole value (no merge), e.g. to drop fields that no longer apply. */
+  replace(value: T): Promise<void>;
   /** Calls `listener` with the merged value whenever this key changes in any context. Returns an unsubscribe fn. */
   watch(listener: (value: T) => void): () => void;
 }
@@ -24,6 +26,9 @@ export function createStore<T extends object>(area: AreaName, key: string, defau
     async set(patch) {
       const current = await this.get();
       await storage().set({ [key]: { ...current, ...patch } });
+    },
+    async replace(value) {
+      await storage().set({ [key]: value });
     },
     watch(listener) {
       const onChanged = (changes: Record<string, chrome.storage.StorageChange>, areaName: string) => {

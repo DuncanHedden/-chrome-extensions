@@ -1,4 +1,5 @@
 import { getLicense } from '@ext/shared/license';
+import { alertOn } from '../alerts/send.ts';
 import { gateSettings } from '../pro.ts';
 import { INITIAL_STATE } from './defaults.ts';
 import { reconcile, type Item } from './reconcile.ts';
@@ -117,13 +118,20 @@ async function execute(action: Action, state: RotationState, log: LogEntry[]) {
   }
 }
 
+/** Append to the health log and send any alerts those entries call for (Pro, webhook configured). */
+async function record(entries: LogEntry[]) {
+  if (!entries.length) return;
+  await appendLog(entries);
+  await appendLog(await alertOn(entries, await effectiveSettings()));
+}
+
 async function step(): Promise<{ state: RotationState; items: Item[] }> {
   const [state, settings] = await Promise.all([stateStore.get(), effectiveSettings()]);
   const world = await snapshot(settings);
   const result = reconcile(state, settings, world);
   for (const action of result.actions) await execute(action, result.state, result.log);
   await stateStore.set(result.state);
-  await appendLog(result.log);
+  await record(result.log);
   await scheduleWake(result.wakeAt, result.state.running);
   await updateBadge(result.state);
   return { state: result.state, items: result.items };
@@ -132,7 +140,7 @@ async function step(): Promise<{ state: RotationState; items: Item[] }> {
 export const tick = () => serialized(step);
 
 /** Health-log writes from other contexts go through the same queue as the engine's own. */
-export const writeLog = (entries: LogEntry[]) => serialized(() => appendLog(entries));
+export const writeLog = (entries: LogEntry[]) => serialized(() => record(entries));
 export const clearLog = () => serialized(() => logStore.set({ entries: [] }));
 
 /** Apply a change to stored state, then reconcile. */
@@ -140,7 +148,7 @@ export const mutate = (fn: (state: RotationState) => RotationState | void, log: 
   serialized(async () => {
     const state = await stateStore.get();
     await stateStore.set(fn(state) ?? state);
-    await appendLog(log);
+    await record(log);
     return step();
   });
 
@@ -161,7 +169,7 @@ export const setPaused = (paused: boolean) =>
     // Idle events arrive whether or not we're rotating; only a real change is applied and logged.
     if (!state.running || state.paused === paused) return;
     await stateStore.set({ ...state, paused, restartSlot: !paused });
-    await appendLog([paused ? entry('info', 'paused', 'Paused: someone is using this computer.') : entry('info', 'resumed', 'Resumed after inactivity.')]);
+    await record([paused ? entry('info', 'paused', 'Paused: someone is using this computer.') : entry('info', 'resumed', 'Resumed after inactivity.')]);
     await step();
   });
 

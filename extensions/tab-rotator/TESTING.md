@@ -79,3 +79,24 @@ Rebuild (`npm run build -- tab-rotator`), reload the extension, and open Options
 
 - [ ] Run the 12-hour soak with display hours on, ending in the evening and starting the next morning. Next morning: one "Outside display hours" and one "Display hours started" in the log, and rotation running.
 - [ ] Leave the "Signed out" and "Error title" rules on during the soak; check the log for false positives.
+
+## Milestone 3: alerts, fleet config, license keys (≈40 min)
+
+Rebuild, reload the extension, and keep **Developer build: enable Pro** ticked (until the Lemon Squeezy store exists, that's how to test Pro). Set a **screen name** under "This screen" first.
+
+| # | Do | Expect |
+|---|---|---|
+| 1 | **Alerts:** create a Slack incoming webhook (or Discord: channel → Integrations → Webhooks). Paste it, pick the format, allow the permission prompt, then click **Send test alert**. | "🔔 Test alert on <screen>: …" arrives in the channel. |
+| 2 | Add the playlist entry `https://does-not-exist.invalid/` and wait ~7 min (it takes 5 failed reloads). | "🔴 Problem on <screen>: Still failing after 5 attempts" with the URL. Remove the entry: no further alerts. |
+| 3 | Tick the daily "all OK" message and set the time to 2 minutes from now. | "💓 Daily check … Healthy: 0 incidents …" arrives at that time. Then it's scheduled for the same time tomorrow. |
+| 4 | **Fleet config:** copy `docs/examples/screens.json` to a GitHub repo (or any web server). Rename one section to your screen name, remove the `license` and `lock` lines, and point the playlist at sites you can open. Paste its raw URL under Fleet config, allow the prompt, click **Check now**. | Within seconds the playlist, durations, detectors and alerts match the file; the banner says the screen is managed; the log shows "Applied fleet config for …". |
+| 5 | Edit the file (change a URL), commit, and wait for the poll interval (set "Check every" to 1 minute to speed it up). | The screen picks up the change on its own; the tab for the old URL closes, and the new one opens. |
+| 6 | Break the file (e.g. `"defaultDurationSec": "soon"`), commit. | The screen keeps its current settings; the log and the Fleet config section show "Config rejected … /screens/<name>/defaultDurationSec: must be integer"; an alert is sent. Fix the file: it applies again. |
+| 7 | Set `"rotation": "stopped"` in the file, then `"running"`. | The screen stops, then starts, on its own. |
+| 8 | **Export / import:** click **Export this screen's settings as JSON**, change something locally, then **Import JSON…** the exported file. | Settings return to what was exported. The exported file passes validation (open it in VS Code: no squiggles). |
+| 9 | **License keys** (once the Lemon Squeezy store exists, see docs/payments-setup.md): untick developer Pro, paste a test-mode key, click **Activate on this screen**. | "Pro is active … 1 of N screens used". **Deactivate this screen** releases it (check the Lemon Squeezy dashboard). |
+
+### Overnight soak additions
+
+- [ ] Leave alerts and the heartbeat on overnight. Next morning: one heartbeat in the channel, and an alert for every error in the health log (or a "+N held back" note).
+- [ ] Leave fleet config polling every 5 min overnight, and edit the file once late in the evening. Next morning: one "Applied fleet config" entry for the edit, and no fetch errors (or only ones that match a real outage).

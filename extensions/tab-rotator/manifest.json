@@ -3,10 +3,11 @@
   "name": "__MSG_extName__",
   "short_name": "Tab Rotator",
   "description": "__MSG_extDescription__",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "default_locale": "en",
   "minimum_chrome_version": "116",
   "permissions": ["tabs", "storage", "alarms", "offscreen", "idle", "webNavigation"],
+  "host_permissions": ["https://api.lemonsqueezy.com/*"],
   "optional_permissions": ["scripting"],
   "optional_host_permissions": ["https://*/*", "http://*/*"],
   "background": {

@@ -5,7 +5,7 @@ Manifest V3 extensions rebuilt to replace abandoned MV2 ones. No analytics, no r
 | Extension | Status |
 |---|---|
 | [Regex Find](extensions/regex-find) | 1.0.0, submitted to the Web Store |
-| [Tab Rotator](extensions/tab-rotator) | milestone 2 (detectors, schedules, health log, lock), in testing. See [TESTING.md](extensions/tab-rotator/TESTING.md) |
+| [Tab Rotator](extensions/tab-rotator) | milestone 3 (alerts, fleet config, license keys), in testing. See [TESTING.md](extensions/tab-rotator/TESTING.md) |
 
 ## Layout
 

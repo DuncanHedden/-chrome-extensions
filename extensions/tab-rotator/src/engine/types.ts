@@ -68,7 +68,28 @@ export interface LockSettings {
   hash: string;
 }
 
+export type AlertFormat = 'slack' | 'teams' | 'discord' | 'json';
+
+/** Webhook alerts (Pro). Alerts are on when webhookUrl is set. */
+export interface AlertSettings {
+  webhookUrl: string;
+  format: AlertFormat;
+  heartbeat: boolean;
+  /** "HH:MM" local time for the daily heartbeat. */
+  heartbeatTime: string;
+}
+
+/** Fleet config (Pro): where this screen gets its settings from. Set on the screen, never by the file. */
+export interface FleetSettings {
+  configUrl: string;
+  /** Optional Authorization header for private config hosts. */
+  authHeader: string;
+  pollMinutes: number;
+}
+
 export interface Settings {
+  /** Identifies this screen in alerts, exports, and its section of the fleet config. */
+  screenName: string;
   /** Rotate whatever tabs are in the window, or a playlist of URLs the extension opens and owns. */
   source: 'window' | 'playlist';
   defaultDurationSec: number;
@@ -84,6 +105,8 @@ export interface Settings {
   detectors: Detector[];
   schedule: Schedule;
   lock: LockSettings;
+  alerts: AlertSettings;
+  fleet: FleetSettings;
 }
 
 export type FailureReason = 'crashed' | 'load-error' | 'load-timeout' | 'detector';

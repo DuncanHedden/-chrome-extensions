@@ -1,6 +1,7 @@
 import type { RotationState, Settings } from './types.ts';
 
 export const DEFAULT_SETTINGS: Settings = {
+  screenName: '',
   source: 'window',
   defaultDurationSec: 30,
   playlist: [],
@@ -19,6 +20,8 @@ export const DEFAULT_SETTINGS: Settings = {
     offHours: { kind: 'blank', url: '', entries: [] },
   },
   lock: { enabled: false, salt: '', hash: '' },
+  alerts: { webhookUrl: '', format: 'slack', heartbeat: false, heartbeatTime: '09:00' },
+  fleet: { configUrl: '', authHeader: '', pollMinutes: 5 },
 };
 
 export const INITIAL_STATE: RotationState = {

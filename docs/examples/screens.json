@@ -1,0 +1,57 @@
+{
+  "$schema": "https://duncanhedden.github.io/-chrome-extensions/packages/shared/schemas/tab-rotator-config.schema.json",
+  "version": 1,
+  "defaults": {
+    "rotation": "running",
+    "source": "playlist",
+    "defaultDurationSec": 30,
+    "autoStart": true,
+    "pauseOnActivity": true,
+    "resumeAfterIdleSec": 120,
+    "detectors": [
+      { "name": "Signed out", "kind": "url", "pattern": "/\\/(login|signin|sso|saml|oauth2?)\\b|login\\.microsoftonline\\.com/i", "action": "reopen" },
+      { "name": "Gateway error", "kind": "title", "pattern": "/\\b50[234]\\b|bad gateway|session expired/i", "action": "reload" },
+      { "name": "Frozen", "kind": "unchanged", "minutes": 30, "action": "reload" }
+    ],
+    "alerts": {
+      "webhookUrl": "https://hooks.slack.com/services/T000/B000/XXXXXXXX",
+      "format": "slack",
+      "heartbeat": true,
+      "heartbeatTime": "08:30"
+    },
+    "lock": { "pin": "4826" },
+    "license": { "key": "REPLACE-WITH-YOUR-LICENSE-KEY" },
+    "pollMinutes": 5
+  },
+  "screens": {
+    "NOC-Wall-1": {
+      "playlist": [
+        { "url": "https://grafana.example.com/d/infra-overview?kiosk", "durationSec": 60, "reloadBeforeShow": true },
+        { "url": "https://grafana.example.com/d/k8s-clusters?kiosk" },
+        { "url": "https://status.example.com/" }
+      ]
+    },
+    "NOC-Wall-2": {
+      "defaultDurationSec": 20,
+      "playlist": [
+        { "url": "https://app.datadoghq.com/dashboard/abc-123?tv_mode=true" },
+        { "url": "https://example.atlassian.net/jira/software/projects/OPS/boards/1" }
+      ]
+    },
+    "Lobby-1": {
+      "defaultDurationSec": 15,
+      "pauseOnActivity": false,
+      "playlist": [
+        { "url": "https://intranet.example.com/welcome" },
+        { "url": "https://intranet.example.com/events" }
+      ],
+      "schedule": {
+        "enabled": true,
+        "timeZone": "America/New_York",
+        "windows": [{ "days": [1, 2, 3, 4, 5], "start": "07:00", "end": "19:00" }],
+        "offHours": { "kind": "blank" }
+      },
+      "alerts": { "heartbeat": false }
+    }
+  }
+}

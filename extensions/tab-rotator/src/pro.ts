@@ -16,5 +16,7 @@ export function gateSettings(settings: Settings, license: License): Settings {
     detectors: canUse(license, 'detectors') ? settings.detectors : [],
     schedule: canUse(license, 'schedules') ? settings.schedule : { ...settings.schedule, enabled: false },
     lock: canUse(license, 'settingsLock') ? settings.lock : { ...settings.lock, enabled: false },
+    alerts: canUse(license, 'alerts') ? settings.alerts : { ...settings.alerts, webhookUrl: '' },
+    fleet: canUse(license, 'fleetConfig') ? settings.fleet : { ...settings.fleet, configUrl: '' },
   };
 }

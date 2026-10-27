@@ -6,7 +6,10 @@ import type { Settings } from '../engine/types.ts';
 import { formatPrice, PRICES } from '../pricing.ts';
 import { canUse, gateSettings, type ProFeature } from '../pro.ts';
 import type { Ctx } from './context.ts';
+import { initAlerts } from './alerts-ui.ts';
 import { initDetectors } from './detectors-ui.ts';
+import { initFleet } from './fleet-ui.ts';
+import { initLicense } from './license-ui.ts';
 import { initHealthLog } from './health-log-ui.ts';
 import { renderList } from './list-editor.ts';
 import { initLock } from './lock-ui.ts';
@@ -65,6 +68,8 @@ async function main() {
     for (const radio of field('source')) radio.checked = radio.value === s.source;
     for (const name of BOOLEANS) field(name)[0]!.checked = s[name];
     for (const name of Object.keys(NUMBERS) as (keyof typeof NUMBERS)[]) field(name)[0]!.value = String(s[name]);
+    const screenName = $<HTMLInputElement>('#screen-name');
+    if (document.activeElement !== screenName) screenName.value = s.screenName;
     $('#playlist-section').hidden = s.source !== 'playlist';
     $('#rules-section').hidden = s.source !== 'window';
     renderList($('#playlist'), s.playlist, {
@@ -93,7 +98,6 @@ async function main() {
     const plan = $('#plan');
     plan.textContent = !ctx.license.pro ? 'Free' : ctx.license.source === 'dev' ? 'Pro (developer)' : 'Pro';
     plan.classList.toggle('pro', ctx.license.pro);
-    $('#pro-status').textContent = ctx.license.pro ? 'Pro is active on this screen.' : '';
     $<HTMLInputElement>('#dev-pro-toggle').checked = ctx.license.pro && ctx.license.source === 'dev';
   }
 
@@ -111,6 +115,9 @@ async function main() {
   const renderDetectors = initDetectors(ctx);
   const renderLog = initHealthLog(ctx);
   const renderLock = initLock(lockCtx, () => void refreshWindowLabel().then(renderStatus));
+  const renderAlerts = initAlerts(ctx);
+  const renderFleet = initFleet(ctx);
+  const renderLicense = initLicense(ctx);
   const renderAll = () => {
     renderBasics();
     renderPro();
@@ -118,14 +125,26 @@ async function main() {
     renderDetectors();
     renderLog();
     renderLock();
+    renderAlerts();
+    renderFleet();
+    renderLicense();
   };
   renderSchedule();
   renderDetectors();
+  renderAlerts();
+  renderFleet();
+  renderLicense();
   await refreshWindowLabel();
   renderStatus();
 
   // --- Wiring ---
   $('#toggle').addEventListener('click', () => void sendToBackground(ctx.state.running ? 'stop' : 'start'));
+  $<HTMLInputElement>('#screen-name').addEventListener('change', (e) => {
+    const input = e.target as HTMLInputElement;
+    input.value = input.value.trim().slice(0, 64);
+    if (input.value && !input.checkValidity()) return input.reportValidity();
+    void ctx.save({ screenName: input.value });
+  });
   for (const radio of field('source')) {
     radio.addEventListener('change', () => void ctx.save({ source: radio.value as Settings['source'] }).then(renderBasics));
   }
@@ -144,6 +163,7 @@ async function main() {
   window.addEventListener('focus', () => void renderShortcut());
 
   $('#prices').textContent = `${formatPrice(PRICES.monthly)}/month · ${formatPrice(PRICES.yearly)}/year · ${formatPrice(PRICES.lifetime)} lifetime`;
+  licenseStore.watch(() => renderLicense());
   if (isDevBuild()) {
     $('#dev-pro').hidden = false;
     $('#dev-pro-toggle').addEventListener('change', (e) => void setDevPro((e.target as HTMLInputElement).checked));

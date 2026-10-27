@@ -12,6 +12,13 @@ import {
   writeLog,
 } from './engine/runtime.ts';
 import type { LogEntry } from './engine/types.ts';
+import { getLicense } from '@ext/shared/license';
+import { HEARTBEAT_ALARM, scheduleHeartbeat, sendHeartbeat, sendTest } from './alerts/send.ts';
+import { applyConfigText, FLEET_ALARM, poll, scheduleFleetPoll } from './fleet/poll.ts';
+import { activate, deactivate, revalidate } from './license-runtime.ts';
+import { canUse } from './pro.ts';
+
+const LICENSE_ALARM = 'license';
 import { settingsStore, stateStore } from './engine/stores.ts';
 import { isTimerAlarm, scheduleWake } from './engine/timer.ts';
 
@@ -22,9 +29,45 @@ const STARTUP_DELAY_MS = 5_000;
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (isTimerAlarm(alarm.name)) void tick();
+  else if (alarm.name === FLEET_ALARM) void pollFleet();
+  else if (alarm.name === LICENSE_ALARM) void revalidate().then(writeLog);
+  else if (alarm.name === HEARTBEAT_ALARM) void heartbeatNow();
 });
 
-chrome.runtime.onMessage.addListener((message: { target?: string; type?: string; entry?: LogEntry }, sender, sendResponse) => {
+// --- Fleet config, alerts, license: background jobs that run whether or not we're rotating. ---
+
+const fleetHooks = {
+  activateLicense: async (key: string) => (await activate(key)).log,
+  setRotation: async (running: boolean) => {
+    const state = await stateStore.get();
+    if (running && !state.running) await start();
+    else if (!running && state.running) await stop();
+  },
+};
+
+async function pollFleet(force = false) {
+  // Raw settings: the config URL is set on the screen. Free screens only look for a license key in it.
+  const [settings, license] = await Promise.all([settingsStore.get(), getLicense()]);
+  await writeLog(await poll(settings, fleetHooks, force, !canUse(license, 'fleetConfig')));
+}
+
+async function heartbeatNow() {
+  const settings = await effectiveSettings();
+  await writeLog(await sendHeartbeat(settings));
+  await scheduleHeartbeat(settings);
+}
+
+async function scheduleBackgroundJobs() {
+  const [raw, effective] = await Promise.all([settingsStore.get(), effectiveSettings()]);
+  await scheduleFleetPoll(raw);
+  await scheduleHeartbeat(effective);
+  // Re-validate paid keys twice a day; nothing to check for free or developer licenses.
+  const license = await getLicense();
+  if (license.source !== 'paid') await chrome.alarms.clear(LICENSE_ALARM);
+  else if (!(await chrome.alarms.get(LICENSE_ALARM))) await chrome.alarms.create(LICENSE_ALARM, { periodInMinutes: 12 * 60, delayInMinutes: 1 });
+}
+
+chrome.runtime.onMessage.addListener((message: { target?: string; type?: string; entry?: LogEntry; text?: string; key?: string }, sender, sendResponse) => {
   if (message.target !== 'background') return;
   // From the options page, rotate the window it's open in.
   const windowId = sender.tab?.windowId;
@@ -35,10 +78,23 @@ chrome.runtime.onMessage.addListener((message: { target?: string; type?: string;
     toggle: () => toggle(windowId),
     clearLog,
     log: () => writeLog(message.entry ? [{ ...message.entry, at: Date.now() }] : []),
+    pollFleet: () => pollFleet(true),
+    importConfig: async () => writeLog(await applyConfigText(message.text ?? '', 'imported file', fleetHooks, true)),
+    testAlert: async () => {
+      const failure = await sendTest(await effectiveSettings());
+      if (failure) await writeLog([failure]);
+      return failure?.message ?? null;
+    },
+    activateLicense: async () => {
+      const { license, log } = await activate(message.key ?? '');
+      await writeLog(log);
+      return license.lastError ?? null;
+    },
+    deactivateLicense: async () => writeLog(await deactivate()),
   };
   const handler = handlers[message.type ?? ''];
   if (handler) {
-    handler().then(() => sendResponse({ ok: true }), (e) => sendResponse({ ok: false, error: String(e) }));
+    handler().then((result) => sendResponse({ ok: true, result }), (e) => sendResponse({ ok: false, error: String(e) }));
     return true; // keep the channel open for the async response
   }
 });
@@ -79,6 +135,8 @@ chrome.idle.onStateChanged.addListener(async (idleState) => {
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local' || !(changes.settings || changes.license)) return;
   void applyIdleInterval();
+void scheduleBackgroundJobs();
+  void scheduleBackgroundJobs();
   void tickIfRunning(); // playlist or durations edited while running
 });
 
@@ -110,7 +168,8 @@ async function applyIdleInterval() {
 }
 
 void applyIdleInterval();
+void scheduleBackgroundJobs();
 
 // Playwright can't press browser-level shortcuts or click the toolbar, so e2e tests call these directly.
 // The service worker's global scope is private to the extension.
-Object.assign(globalThis, { tabRotator: { start, stop, toggle, tick, scheduleWake } });
+Object.assign(globalThis, { tabRotator: { start, stop, toggle, tick, scheduleWake, pollFleet } });

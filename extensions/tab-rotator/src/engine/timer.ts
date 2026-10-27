@@ -27,7 +27,8 @@ async function ensureOffscreen() {
 
 export async function scheduleWake(wakeAt: number | null, running: boolean) {
   if (!running) {
-    await chrome.alarms.clearAll();
+    // Only our own timers: fleet polling, heartbeats and license checks run whether or not we rotate.
+    await Promise.all([chrome.alarms.clear(TICK_ALARM), chrome.alarms.clear(WATCHDOG_ALARM)]);
     if (await hasOffscreen()) await chrome.offscreen.closeDocument();
     return;
   }

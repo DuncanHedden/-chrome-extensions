@@ -29,13 +29,17 @@ Paste these into the Web Store dashboard's **Privacy practices** tab. Keep this 
 | `idle` | Pauses rotation while someone is using the keyboard or mouse, and resumes after a configurable idle time, so the screen doesn't change under a person using it. |
 | `webNavigation` | Detects when a rotated page fails to load (e.g. a DNS or connection error), so the extension can reload it with backoff instead of showing an error page on an unattended screen. Only main-frame errors for tabs in the rotation are used. |
 
-**Optional permissions** (not granted at install; requested only when the user turns on the feature, and only for the sites involved):
+| Host permission | Justification |
+|---|---|
+| `https://api.lemonsqueezy.com/*` | Checks Pro license keys with Lemon Squeezy's license API (the payment provider): activation when the user enters a key, then about twice a day. Required at install, not optional, because keys can arrive through the fleet config file on screens where nobody is present to approve a prompt. Free users never contact it. |
+
+**Optional permissions** (not granted at install; requested only when the user turns on a feature, and only for the specific addresses involved):
 
 | Permission | Justification |
 |---|---|
-| `scripting` + `optional_host_permissions` (`https://*/*`, `http://*/*`) | Only when the user enables "also compare the page text" on a frozen-page rule: Tab Rotator asks for access to the specific sites in their rotation, then reads a hash of the page's visible text once a minute to tell whether the dashboard has stopped updating. The text itself is never stored or sent anywhere. Milestone 3 will use the same mechanism to reach the user's own config URL and webhook URL. The broad patterns are listed only because the user's sites aren't known in advance; Chrome prompts for each specific origin. |
+| `optional_host_permissions` (`https://*/*`, `http://*/*`) | Requested for **one specific origin at a time**, from the click that enables the feature: (1) the user's own **fleet config URL**, so the screen can download its settings file; (2) the user's own **alert webhook URL** (e.g. Slack/Teams), so it can post alerts; (3) the sites in the rotation, only if the user enables page-text comparison on a frozen-page rule. The broad patterns are declared only because these addresses are the user's own and aren't known in advance. |
+| `scripting` (optional) | Only with (3) above: reads a hash of the visible page text, once a minute, to tell whether a dashboard has stopped updating. The text is never stored or sent anywhere. |
 
-- **Host permissions at install:** none.
 - **Remote code:** No.
 - **Data usage:** collects no user data.
 

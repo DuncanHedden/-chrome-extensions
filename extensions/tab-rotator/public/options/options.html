@@ -35,6 +35,13 @@
 
       <div id="settings" class="unlocked-only">
         <p class="hint">While this settings tab is in front, rotation holds on it. Switch to another tab and it carries on.</p>
+        <p id="managed-banner" class="banner" hidden></p>
+
+        <section>
+          <h2>This screen</h2>
+          <label class="inline">Screen name <input type="text" id="screen-name" placeholder="e.g. NOC-Wall-1" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9 ._\-]{0,63}" size="24" /></label>
+          <p class="hint">Shown in alerts and exports, and picks this screen's section of a fleet config file. Letters, digits, spaces, <code>. _ -</code>.</p>
+        </section>
 
         <section>
           <h2>What to rotate</h2>
@@ -92,6 +99,53 @@
             <div class="row">
               <button type="button" id="add-detector">Add rule</button>
               <select id="add-preset" aria-label="Add a ready-made rule"><option value="">Add a ready-made rule…</option></select>
+            </div>
+          </fieldset>
+          <p class="unlock"><a href="#pro">Unlock with Pro</a></p>
+        </section>
+
+        <section class="pro" data-feature="alerts">
+          <h2>Alerts <span class="badge">Pro</span></h2>
+          <p class="hint">Posts to your own webhook when this screen hits a problem it can't fix itself, and again when it recovers. The same problem is sent at most every 30 min, and at most 10 alerts an hour. Nothing else is ever sent anywhere.</p>
+          <fieldset>
+            <label class="inline">Webhook URL <input type="url" id="webhook-url" placeholder="https://hooks.slack.com/services/…" size="48" /></label>
+            <label class="inline">Format
+              <select id="webhook-format">
+                <option value="slack">Slack</option>
+                <option value="teams">Microsoft Teams (Workflows)</option>
+                <option value="discord">Discord</option>
+                <option value="json">Generic JSON</option>
+              </select>
+            </label>
+            <div class="row">
+              <label><input type="checkbox" id="heartbeat" /> Daily "all OK" message at</label>
+              <input type="time" id="heartbeat-time" aria-label="Heartbeat time" />
+            </div>
+            <div class="row">
+              <button type="button" id="test-alert">Send test alert</button>
+              <button type="button" id="grant-webhook" hidden>Allow sending to this webhook</button>
+              <span id="alert-status" class="hint"></span>
+            </div>
+          </fieldset>
+          <p class="unlock"><a href="#pro">Unlock with Pro</a></p>
+        </section>
+
+        <section class="pro" data-feature="fleetConfig">
+          <h2>Fleet config <span class="badge">Pro</span></h2>
+          <p class="hint">Manage many screens from one JSON file in git, S3 or on an internal server. This screen checks the file regularly and applies <code>defaults</code> plus its own section under <code>screens</code>. Invalid files are rejected and the last good one stays in effect. <a href="https://github.com/DuncanHedden/-chrome-extensions/blob/main/docs/remote-config.md" target="_blank" rel="noopener">How it works</a></p>
+          <fieldset>
+            <label class="inline">Config URL <input type="url" id="config-url" placeholder="https://raw.githubusercontent.com/acme/screens/main/screens.json" size="56" /></label>
+            <label class="inline">Authorization header <input type="password" id="config-auth" placeholder="optional, e.g. Bearer …" size="32" autocomplete="off" /></label>
+            <label class="inline">Check every <input type="number" id="poll-minutes" min="1" max="1440" step="1" /> minutes</label>
+            <div class="row">
+              <button type="button" id="poll-now">Check now</button>
+              <span id="fleet-status" class="hint"></span>
+            </div>
+            <p id="fleet-error" class="error"></p>
+            <h3>One-off setup</h3>
+            <div class="row">
+              <button type="button" id="export-config">Export this screen's settings as JSON</button>
+              <label class="button">Import JSON… <input type="file" id="import-config" accept="application/json,.json" hidden /></label>
             </div>
           </fieldset>
           <p class="unlock"><a href="#pro">Unlock with Pro</a></p>
@@ -156,10 +210,19 @@
             <li><strong>Health log</strong> with CSV export: what happened on this screen, and when</li>
             <li><strong>Display hours</strong> with an off-hours screen or playlist</li>
             <li><strong>Settings lock</strong> with a PIN</li>
-            <li>Coming next: <strong>alerts</strong> to Slack/Teams/webhooks, and <strong>fleet config</strong> from one file for all your screens</li>
+            <li><strong>Alerts</strong> to Slack, Teams, Discord or any webhook, plus a daily "all OK" heartbeat</li>
+            <li><strong>Fleet config</strong>: manage every screen from one JSON file in git</li>
           </ul>
+          <div id="buy" class="row"></div>
+          <h3>License key</h3>
+          <form id="license-form" class="row">
+            <input type="text" id="license-key" placeholder="Paste your license key" size="40" autocomplete="off" spellcheck="false" aria-label="License key" />
+            <button type="submit" class="primary">Activate on this screen</button>
+            <button type="button" id="license-deactivate" hidden>Deactivate this screen</button>
+          </form>
           <p id="pro-status"></p>
-          <button type="button" id="upgrade" class="primary" disabled>Upgrade (available soon)</button>
+          <p id="license-error" class="error" role="alert"></p>
+          <p class="hint">Each screen uses one activation. Deactivate a screen to move its activation to another. With fleet config, put the key in the file and every screen activates itself.</p>
           <label id="dev-pro" hidden><input type="checkbox" id="dev-pro-toggle" /> Developer build: enable Pro features for testing</label>
         </section>
       </div>
