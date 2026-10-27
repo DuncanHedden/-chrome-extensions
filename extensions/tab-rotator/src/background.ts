@@ -12,9 +12,16 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (isTimerAlarm(alarm.name)) void tick();
 });
 
-chrome.runtime.onMessage.addListener((message: { target?: string; type?: string }, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message: { target?: string; type?: string }, sender, sendResponse) => {
   if (message.target !== 'background') return;
-  const handlers: Record<string, () => Promise<unknown>> = { wake: tick, start, stop, toggle };
+  // From the options page, rotate the window it's open in.
+  const windowId = sender.tab?.windowId;
+  const handlers: Record<string, () => Promise<unknown>> = {
+    wake: tick,
+    start: () => start(windowId),
+    stop,
+    toggle: () => toggle(windowId),
+  };
   const handler = handlers[message.type ?? ''];
   if (handler) {
     handler().then(() => sendResponse({ ok: true }), (e) => sendResponse({ ok: false, error: String(e) }));
@@ -22,9 +29,9 @@ chrome.runtime.onMessage.addListener((message: { target?: string; type?: string 
   }
 });
 
-chrome.action.onClicked.addListener(() => void toggle());
-chrome.commands.onCommand.addListener((command) => {
-  if (command === 'toggle-rotation') void toggle();
+chrome.action.onClicked.addListener((tab) => void toggle(tab.windowId));
+chrome.commands.onCommand.addListener((command, tab) => {
+  if (command === 'toggle-rotation') void toggle(tab?.windowId);
 });
 
 // Tab changes that matter to rotation. Title/favicon updates are ignored: dashboards change those constantly.

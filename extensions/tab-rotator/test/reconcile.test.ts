@@ -130,6 +130,27 @@ describe('reconcile: surviving restarts, sleep and clock changes', () => {
     expect(chrome.codes()).toContain('clock-backwards');
   });
 
+  it('duration shortened while running: applies to the tab on screen, without a clock-change log', () => {
+    const { chrome, tabs } = windowOf(3, settings({ defaultDurationSec: 30 }));
+    chrome.start();
+    chrome.now += 4 * S;
+    chrome.settings = { ...chrome.settings, defaultDurationSec: 5 };
+    expect(chrome.step().wakeAt).toBe(T0 + 5 * S);
+    chrome.wake();
+    expect(chrome.activeTab()!.id).toBe(tabs[1]!.id);
+    expect(chrome.codes()).not.toContain('clock-backwards');
+  });
+
+  it('starts in the window it was asked to, even if another window is focused', () => {
+    const { chrome } = windowOf(2);
+    chrome.windows = [{ id: 1, focused: false }, { id: 2, focused: true }];
+    const other = chrome.addTab('https://other.example/', { active: true }, 2);
+    chrome.state = { ...structuredClone(INITIAL_STATE), running: true, windowId: 1 };
+    chrome.step();
+    expect(chrome.state.windowId).toBe(1);
+    expect(chrome.state.currentKey).not.toBe(`tab:${other.id}`);
+  });
+
   it('clock jumped forwards: treated like sleep, one step', () => {
     const { chrome, tabs } = windowOf(3);
     chrome.start();

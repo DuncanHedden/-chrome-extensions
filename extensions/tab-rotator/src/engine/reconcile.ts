@@ -207,12 +207,15 @@ export function reconcile(prev: RotationState, settings: Settings, world: World)
     actions.push({ type: 'activate', tabId: currentTab.id });
   }
 
-  // --- Clock moved backwards: don't sit on one tab for an hour. ---
+  // --- Clock moved backwards (the slot "started" in the future): don't sit on one tab for an hour. ---
   const current = items[idx]!;
-  if (state.nextSwitchAt - now > current.durationMs + 1_000) {
+  if (state.shownAt > now + 1_000) {
     note('info', 'clock-backwards', 'The system clock moved backwards; restarted the current timer.');
+    state.shownAt = now;
     state.nextSwitchAt = now + current.durationMs;
   }
+  // Duration shortened while this item is on screen: the new duration applies now.
+  state.nextSwitchAt = Math.min(state.nextSwitchAt, state.shownAt + current.durationMs);
 
   // --- Time to switch (or the current item broke)? ---
   const switchAt = state.nextSwitchAt;

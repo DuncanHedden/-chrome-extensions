@@ -15,10 +15,13 @@ function serialized<T>(fn: () => Promise<T>): Promise<T> {
 
 async function snapshot(): Promise<World> {
   const windows = await chrome.windows.getAll({ populate: true, windowTypes: ['normal'] });
+  // `focused` is false for every window when another app is in front (common on macOS), so use the
+  // last-focused browser window instead.
+  const lastFocused = await chrome.windows.getLastFocused({ windowTypes: ['normal'] }).catch(() => undefined);
   return {
     now: Date.now(),
     selfOrigin: chrome.runtime.getURL(''),
-    windows: windows.map((w) => ({ id: w.id!, focused: w.focused })),
+    windows: windows.map((w) => ({ id: w.id!, focused: w.id === lastFocused?.id })),
     tabs: windows.flatMap((w) =>
       (w.tabs ?? []).map((t) => ({
         id: t.id!,
@@ -81,13 +84,14 @@ export const mutate = (fn: (state: RotationState) => RotationState | void, log: 
 
 const entry = (level: LogEntry['level'], code: string, message: string): LogEntry => ({ at: Date.now(), level, code, message });
 
-export const start = () =>
-  mutate(() => ({ ...structuredClone(INITIAL_STATE), running: true }));
+/** Start rotating `windowId` (the window the user clicked in), or the last-focused window. */
+export const start = (windowId?: number) =>
+  mutate(() => ({ ...structuredClone(INITIAL_STATE), running: true, windowId: windowId ?? null }));
 
 export const stop = () =>
   mutate((s) => ({ ...s, running: false, paused: false, currentKey: null }), [entry('info', 'stopped', 'Rotation stopped.')]);
 
-export const toggle = async () => ((await stateStore.get()).running ? stop() : start());
+export const toggle = async (windowId?: number) => ((await stateStore.get()).running ? stop() : start(windowId));
 
 export const setPaused = (paused: boolean) =>
   mutate(

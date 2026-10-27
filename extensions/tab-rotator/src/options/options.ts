@@ -34,7 +34,21 @@ function renderStatus() {
   let detail = '';
   if (state.running && state.paused) detail = 'Someone is using this computer. Resumes after the idle time below.';
   else if (state.running && state.nextSwitchAt) detail = `Next switch in ${formatDuration(Math.max(0, state.nextSwitchAt - Date.now()))}`;
+  if (state.running && rotatingWindowLabel) detail += ` · ${rotatingWindowLabel}`;
   $('#status-detail').textContent = detail;
+}
+
+// Which window is rotating, named by its tabs, since Chrome windows have no names.
+let rotatingWindowLabel = '';
+async function refreshWindowLabel() {
+  rotatingWindowLabel = '';
+  if (!state.running || state.windowId === null) return;
+  const [here, tabs] = await Promise.all([chrome.windows.getCurrent(), chrome.tabs.query({ windowId: state.windowId })]);
+  const rotated = tabs.filter((t) => !t.url?.startsWith(chrome.runtime.getURL('')));
+  rotatingWindowLabel =
+    here.id === state.windowId
+      ? `rotating ${rotated.length} tab${rotated.length === 1 ? '' : 's'} in this window`
+      : `rotating ${rotated.length} tab${rotated.length === 1 ? '' : 's'} in another window (showing "${tabs.find((t) => t.active)?.title ?? '…'}")`;
 }
 
 // --- Simple settings ---
@@ -157,9 +171,12 @@ async function main() {
   window.addEventListener('focus', () => void renderShortcut());
 
   stateStore.watch((s) => {
+    const windowChanged = s.windowId !== state.windowId || s.running !== state.running;
     state = s;
+    if (windowChanged) void refreshWindowLabel().then(renderStatus);
     renderStatus();
   });
+  await refreshWindowLabel();
   logStore.watch(({ entries }) => renderLog(entries));
   setInterval(renderStatus, 1000);
   $('#version').textContent = `Version ${chrome.runtime.getManifest().version}`;
