@@ -2,7 +2,7 @@
 
 ## Name (manifest `extName`, ≤ 45 chars, must contain "tab rotator" or "rotate tabs")
 
-Pick one; the current manifest uses **A**.
+**Chosen: A** (26 Oct 2026). The others are kept for reference.
 
 | | Title | Chars | Notes |
 |---|---|---|---|
